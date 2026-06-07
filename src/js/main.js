@@ -30,6 +30,7 @@ const map = initMap()
 initRoute(map, onRouteUpdate)
 
 // ===== GPS =====
+let firstFix = true
 startGPS((pos) => {
   lastPosition   = pos
   updateBoatPosition(pos.lat, pos.lon, pos.heading ?? 0)
@@ -43,27 +44,32 @@ startGPS((pos) => {
   updateTideInstrument(pos.lat, pos.lon)
   scheduleDepthLookup(pos.lat, pos.lon)
   refreshRouteStats()
+
+  // Første GPS-fix: hent vær, hav og varsler umiddelbart
+  if (firstFix) {
+    firstFix = false
+    fetchWeatherNow()
+    fetchOceanNow()
+    fetchAlertsNow()
+  }
 })
 
 // ===== Yr.no vær =====
-scheduleWeatherUpdates(
+const fetchWeatherNow = scheduleWeatherUpdates(
   () => lastPosition,
   (data) => { lastWeather = data; updateWeatherUI(data) }
 )
 
 // ===== MET Oceanforecast =====
-scheduleOceanUpdates(
+const fetchOceanNow = scheduleOceanUpdates(
   () => lastPosition,
   (data) => updateOceanUI(data)
 )
 
 // ===== MetAlerts =====
-scheduleAlertChecks(
+const fetchAlertsNow = scheduleAlertChecks(
   () => lastPosition,
-  (alerts) => {
-    activeAlerts = alerts
-    updateAlertBanner(alerts)
-  }
+  (alerts) => { activeAlerts = alerts; updateAlertBanner(alerts) }
 )
 
 // ===== AIS — aisstream.io =====
@@ -386,5 +392,10 @@ setTimeout(() => {
     setInstrument('val-course', '135°')
     updateTideInstrument(demoPos.lat, demoPos.lon)
     document.getElementById('gps-accuracy').textContent = 'Demo-modus'
+    // Hent vær, hav og varsler for demo-posisjon
+    firstFix = false
+    fetchWeatherNow()
+    fetchOceanNow()
+    fetchAlertsNow()
   }
 }, 8000)

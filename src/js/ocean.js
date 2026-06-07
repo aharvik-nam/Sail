@@ -54,6 +54,6 @@ export function scheduleOceanUpdates(getPosition, onUpdate) {
     const data = await fetchOcean(pos.lat, pos.lon)
     if (data) onUpdate(data)
   }
-  doFetch()
-  return setInterval(doFetch, 30 * 60 * 1000)  // hvert 30. min
+  setInterval(doFetch, 30 * 60 * 1000)
+  return doFetch  // returner trigger
 }

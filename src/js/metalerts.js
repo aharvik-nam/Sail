@@ -69,8 +69,8 @@ export function scheduleAlertChecks(getPosition, onAlerts) {
     const alerts = await fetchAlerts(pos.lat, pos.lon)
     onAlerts(alerts)
   }
-  doFetch()
-  alertTimer = setInterval(doFetch, 15 * 60 * 1000)  // hvert 15. min
+  alertTimer = setInterval(doFetch, 15 * 60 * 1000)
+  return doFetch  // returner trigger
 }
 
 export function stopAlerts() {

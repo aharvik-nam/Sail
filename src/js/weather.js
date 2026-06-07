@@ -50,8 +50,11 @@ export function scheduleWeatherUpdates(getPosition, onUpdate) {
     if (data) onUpdate(data)
   }
 
-  doFetch()
-  fetchTimer = setInterval(doFetch, 10 * 60 * 1000) // Every 10 min
+  // Ikke hent umiddelbart — vent på posisjon via triggerWeatherFetch()
+  fetchTimer = setInterval(doFetch, 10 * 60 * 1000)
+
+  // Returner trigger-funksjon for bruk når posisjon er klar
+  return doFetch
 }
 
 export function stopWeatherUpdates() {
