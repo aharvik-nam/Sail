@@ -1,4 +1,8 @@
 import L from 'leaflet'
+import {
+  initAisCanvas, aisCanvasUpdate, aisCanvasRemove,
+  aisCanvasSetRisk, aisCanvasSetVisible,
+} from './aisCanvas.js'
 
 // Fix Leaflet default icon paths with Vite
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png?url'
@@ -13,7 +17,6 @@ const DEFAULT_ZOOM = 10
 
 let map, activeBaseLayer, seamarkLayer
 let boatMarker = null
-let aisMarkers = {}
 
 const KARTVERKET_ATTR = '© <a href="https://kartverket.no">Kartverket</a>'
 
@@ -61,6 +64,9 @@ export function initMap() {
     'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
     { attribution: '© <a href="https://openseamap.org">OpenSeaMap</a>', maxZoom: 18, opacity: 1 }
   ).addTo(map)
+
+  // Canvas-based AIS rendering (replaces DOM markers)
+  initAisCanvas(map)
 
   return map
 }
@@ -141,51 +147,19 @@ export function updateRouteLine(latlonPairs) {
   }).addTo(map)
 }
 
-// AIS markers
-function createAisIcon(heading = 0) {
-  return L.divIcon({
-    className: 'ais-icon',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    html: `<svg class="ais-tri" width="22" height="22" viewBox="0 0 22 22"><g transform="rotate(${heading} 11 11)">
-      <path d="M11 2 15 19 11 15.5 7 19Z" fill="#5ab0ff" stroke="var(--c-bg)" stroke-width="1.3" stroke-linejoin="round"/>
-      </g></svg>`,
-  })
-}
-
+// AIS — canvas-based (see aisCanvas.js)
 export function updateAisTarget(mmsi, lat, lon, heading, name, speed, course) {
-  const popup = `<div class="ais-pop"><b>${name || 'Ukjent'}</b>
-    <div class="r"><span>MMSI</span><span>${mmsi}</span></div>
-    <div class="r"><span>Fart</span><span>${speed ? speed.toFixed(1) + ' kn' : '--'}</span></div>
-    <div class="r"><span>Kurs</span><span>${course ? Math.round(course) + '°' : '--'}</span></div></div>`
-
-  if (aisMarkers[mmsi]) {
-    aisMarkers[mmsi].setLatLng([lat, lon])
-    aisMarkers[mmsi].setIcon(createAisIcon(heading))
-    aisMarkers[mmsi].getPopup().setContent(popup)
-  } else {
-    aisMarkers[mmsi] = L.marker([lat, lon], { icon: createAisIcon(heading), zIndexOffset: 500 }).addTo(map)
-    aisMarkers[mmsi].bindPopup(popup, { className: 'ais-popup' })
-  }
+  aisCanvasUpdate(mmsi, lat, lon, heading, name, speed, course)
 }
 
 export function removeAisTarget(mmsi) {
-  if (aisMarkers[mmsi]) { map.removeLayer(aisMarkers[mmsi]); delete aisMarkers[mmsi] }
+  aisCanvasRemove(mmsi)
 }
 
 export function setAisRisk(mmsi, risk) {
-  const m = aisMarkers[mmsi]
-  if (!m) return
-  const el = m.getElement()
-  if (!el) return
-  el.classList.remove('ais-warn', 'ais-critical')
-  if (risk === 'warning')  el.classList.add('ais-warn')
-  if (risk === 'critical') el.classList.add('ais-critical')
+  aisCanvasSetRisk(mmsi, risk)
 }
 
 export function setAisVisible(visible) {
-  Object.values(aisMarkers).forEach(m => {
-    if (visible) { if (!map.hasLayer(m)) map.addLayer(m) }
-    else { if (map.hasLayer(m)) map.removeLayer(m) }
-  })
+  aisCanvasSetVisible(visible)
 }
