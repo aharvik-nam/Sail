@@ -90,12 +90,12 @@ export function formatTideTable(highLows) {
 
   const rows = highLows.slice(0, 6).map(hl => {
     const time = hl.time.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
-    const cls = hl.type === 'high' ? 'tide-high' : 'tide-low'
-    const arrow = hl.type === 'high' ? '▲' : '▽'
-    return `<div class="tide-row">
-      <span class="${cls}">${arrow} ${hl.type === 'high' ? 'HW' : 'LW'}</span>
-      <span>${time}</span>
-      <span class="${cls}">${Math.round(hl.value)} cm</span>
+    const isHigh = hl.type === 'high'
+    const label = isHigh ? 'Høyvann' : 'Lavvann'
+    return `<div class="tide-row ${isHigh ? 'high' : 'low'}">
+      <span class="ty">${label}</span>
+      <span class="tm">${time}</span>
+      <span class="th">${Math.round(hl.value)} cm</span>
     </div>`
   }).join('')
 

@@ -2,298 +2,228 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0a1628" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#05101c" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>SeilNav</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/src/css/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@400;500;600;700&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" />
 </head>
 <body>
-  <div id="app">
-    <div id="map"></div>
+<div id="app">
 
-    <!-- Top toolbar -->
-    <div id="toolbar">
-      <div id="toolbar-left">
-        <span id="app-title">⛵ SeilNav</span>
-      </div>
-      <div id="toolbar-right">
-        <button id="btn-center" title="Sentrér på posisjon" aria-label="Sentrér">📍</button>
-        <button id="btn-night" title="Nattmodus" aria-label="Nattmodus">🔴</button>
-        <button id="btn-route" title="Ruteplanlegger" aria-label="Rute">📐</button>
-        <button id="btn-windy" title="Windy vindkart" aria-label="Windy">🌬️</button>
-        <button id="btn-depth" title="Dybdealarm" aria-label="Dybdealarm" class="alarm-btn">⚓</button>
-        <button id="btn-layers" title="Kartlag" aria-label="Kartlag">🗺️</button>
-      </div>
+  <div id="map"></div>
+  <div id="vignette"></div>
+
+  <!-- ============ TOP BAR ============ -->
+  <div id="topbar">
+    <div id="brand" class="glass">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2.5 13 13H4z" fill="currentColor"/>
+        <path d="M13.6 4.2 19.5 14H13.6z" fill="currentColor" opacity="0.55"/>
+        <path d="M3 15.4h17.4c-1 2.4-3.7 4.3-8.7 4.3S4 17.8 3 15.4Z" fill="currentColor"/>
+      </svg>
+      <span class="name">Sail<b>Nav</b></span>
     </div>
-
-    <!-- Instrument panel -->
-    <div id="instruments">
-      <div class="instrument" id="inst-speed">
-        <span class="inst-value" id="val-speed">--</span>
-        <span class="inst-label">KNP</span>
-      </div>
-      <div class="instrument" id="inst-course">
-        <span class="inst-value" id="val-course">---</span>
-        <span class="inst-label">KRS °</span>
-      </div>
-      <div class="instrument" id="inst-wind">
-        <span class="inst-value" id="val-wind">--</span>
-        <span class="inst-label">VIND m/s</span>
-      </div>
-      <div class="instrument" id="inst-winddir">
-        <span class="inst-value" id="val-winddir">
-          <span id="wind-arrow">↑</span>
-        </span>
-        <span class="inst-label">V.RETN</span>
-      </div>
-      <div class="instrument" id="inst-tide">
-        <span class="inst-value" id="val-tide">--</span>
-        <span class="inst-label">TIDEV cm</span>
-      </div>
-      <div class="instrument" id="inst-wave">
-        <span class="inst-value" id="val-wave">--</span>
-        <span class="inst-label">BØLGE m</span>
-      </div>
-      <div class="instrument" id="inst-current">
-        <span class="inst-value" id="val-current">--</span>
-        <span class="inst-label">STRØM kn</span>
-      </div>
-      <div class="instrument" id="inst-temp">
-        <span class="inst-value" id="val-temp">--</span>
-        <span class="inst-label">HAVTEMP °C</span>
-      </div>
-    </div>
-
-    <!-- MetAlerts farevarsel-banner -->
-    <div id="alert-banner" class="hidden">
-      <span id="alert-icon">⚠️</span>
-      <span id="alert-text"></span>
-      <button id="btn-alert-details">Detaljer</button>
-      <button id="btn-alert-close">✕</button>
-    </div>
-
-    <!-- MetAlerts detalj-panel -->
-    <div id="alert-panel" class="panel hidden">
-      <div class="panel-header">
-        <span>Farevarsler — MET</span>
-        <button id="btn-close-alert">✕</button>
-      </div>
-      <div id="alert-list"></div>
-    </div>
-
-    <!-- Weather panel (expandable) -->
-    <div id="weather-panel" class="panel hidden">
-      <div class="panel-header">
-        <span>Vær — Yr.no</span>
-        <button id="btn-close-weather">✕</button>
-      </div>
-      <div id="weather-content">
-        <div class="weather-section-title">Vind &amp; luft</div>
-        <div class="weather-row">
-          <span class="weather-label">Vind</span>
-          <span id="wx-wind">Laster...</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Vindkast</span>
-          <span id="wx-gust">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Retning</span>
-          <span id="wx-dir">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Lufttemperatur</span>
-          <span id="wx-temp">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Trykk</span>
-          <span id="wx-pressure">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Oppdatert</span>
-          <span id="wx-updated">--</span>
-        </div>
-        <div class="weather-section-title">Hav — MET Oceanforecast</div>
-        <div class="weather-row">
-          <span class="weather-label">Bølgehøyde</span>
-          <span id="wx-wave-height">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Bølgeperiode</span>
-          <span id="wx-wave-period">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Bølgeretning</span>
-          <span id="wx-wave-dir">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Strømstyrke</span>
-          <span id="wx-current-speed">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Strømretning</span>
-          <span id="wx-current-dir">--</span>
-        </div>
-        <div class="weather-row">
-          <span class="weather-label">Havtemperatur</span>
-          <span id="wx-sea-temp">--</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tide panel -->
-    <div id="tide-panel" class="panel hidden">
-      <div class="panel-header">
-        <span>Tidevann</span>
-        <button id="btn-close-tide">✕</button>
-      </div>
-      <div id="tide-content">
-        <div id="tide-station">Laster stasjon...</div>
-        <div id="tide-table"></div>
-      </div>
-    </div>
-
-    <!-- Layer switcher -->
-    <div id="layer-panel" class="panel hidden">
-      <div class="panel-header">
-        <span>Kartlag</span>
-        <button id="btn-close-layers">✕</button>
-      </div>
-      <div id="layer-content">
-        <div class="layer-section-title">Basekart</div>
-        <label class="layer-toggle">
-          <input type="radio" name="baselayer" value="bw" checked />
-          <span>Sjøkart gråtone</span>
-        </label>
-        <label class="layer-toggle">
-          <input type="radio" name="baselayer" value="color" />
-          <span>Sjøkart farge</span>
-        </label>
-        <label class="layer-toggle">
-          <input type="radio" name="baselayer" value="topo" />
-          <span>Topografisk</span>
-        </label>
-        <div class="layer-divider"></div>
-        <div class="layer-section-title">Overlay</div>
-        <label class="layer-toggle">
-          <input type="checkbox" id="layer-seamark" checked />
-          <span>OpenSeaMap sjømerker</span>
-        </label>
-        <label class="layer-toggle">
-          <input type="checkbox" id="layer-ais" checked />
-          <span>AIS-båter</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Depth alarm panel -->
-    <div id="depth-panel" class="panel hidden">
-      <div class="panel-header">
-        <span>Dybdealarm</span>
-        <button id="btn-close-depth">✕</button>
-      </div>
-      <div id="depth-content">
-        <div class="depth-current">
-          <span class="depth-label">Gjeldende dybde</span>
-          <span id="val-depth-live">--</span>
-          <span class="depth-unit">m</span>
-        </div>
-        <div class="depth-alarm-row">
-          <label for="depth-threshold">Alarm under</label>
-          <div class="depth-input-group">
-            <input type="number" id="depth-threshold" min="1" max="50" value="5" />
-            <span class="depth-unit">m</span>
-          </div>
-        </div>
-        <div class="depth-alarm-row">
-          <label class="layer-toggle">
-            <input type="checkbox" id="depth-alarm-enabled" />
-            <span>Aktiver alarm</span>
-          </label>
-        </div>
-        <div id="depth-alarm-status" class="depth-status"></div>
-      </div>
-    </div>
-
-    <!-- Windy panel -->
-    <div id="windy-panel" class="panel windy-panel hidden">
-      <div class="panel-header">
-        <span>Windy vindkart</span>
-        <button id="btn-close-windy">✕</button>
-      </div>
-      <div id="windy-content">
-        <iframe id="windy-iframe" src="" frameborder="0" allowfullscreen></iframe>
-      </div>
-    </div>
-
-    <!-- Route panel -->
-    <div id="route-panel" class="panel hidden">
-      <div class="panel-header">
-        <span>Ruteplanlegger</span>
-        <div style="display:flex;gap:6px">
-          <button id="btn-route-clear" title="Slett rute">🗑️</button>
-          <button id="btn-close-route">✕</button>
-        </div>
-      </div>
-      <div id="route-content">
-        <div id="route-mode-indicator" class="route-mode-off">
-          Trykk <b>Aktiver</b> og klikk på kartet for å legge til waypoints.<br>
-          Dobbeltklikk på waypoint for å slette det.
-        </div>
-        <button id="btn-route-toggle" class="route-toggle-btn">Aktiver planlegging</button>
-        <div id="route-stats" class="hidden">
-          <div class="route-summary">
-            <div class="route-stat-row">
-              <span class="route-stat-label">Waypoints</span>
-              <span id="route-wp-count">0</span>
-            </div>
-            <div class="route-stat-row">
-              <span class="route-stat-label">Total distanse</span>
-              <span id="route-total-nm">-- nm</span>
-            </div>
-            <div class="route-stat-row">
-              <span class="route-stat-label">Total ETA</span>
-              <span id="route-eta">--</span>
-            </div>
-            <div id="route-wind-source" class="route-wind-source hidden">🌬️ Vindbasert ETA</div>
-          </div>
-          <div id="route-legs"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CPA warning banner -->
-    <div id="cpa-banner" class="hidden">
-      <span id="cpa-banner-text">⚠️ KOLLISJONSKURS</span>
-    </div>
-
-    <!-- Depth alarm banner -->
-    <div id="depth-alarm-banner" class="hidden">
-      ⚠️ GRUNT VANN — <span id="alarm-depth-val"></span> m
-    </div>
-
-    <!-- GPS status -->
-    <div id="gps-status">
-      <span id="gps-icon">⊙</span>
-      <span id="gps-accuracy">Ingen GPS</span>
-    </div>
-
-    <!-- AIS status -->
-    <div id="ais-status">
-      <span id="ais-icon">⬡</span>
-      <span id="ais-text">AIS av</span>
-    </div>
-
-    <!-- BarentsWatch status -->
-    <div id="bw-status">
-      <span id="bw-icon">⬡</span>
-      <span id="bw-text">BW av</span>
+    <div id="chips">
+      <div class="chip glass" id="chip-gps"><span class="dot warn" id="gps-dot"></span><span>GPS <b id="gps-acc">±—</b></span></div>
+      <div class="chip glass" id="chip-ais"><span class="dot" id="ais-dot"></span><span>AIS <b id="ais-count">0</b></span></div>
     </div>
   </div>
 
-  <script type="module" src="/src/js/main.js"></script>
+  <!-- ============ TOOL DOCK ============ -->
+  <div id="tools" class="glass">
+    <button class="tool active" data-tool="center" title="Sentrér på posisjon" aria-label="Sentrér">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="9"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tool" data-tool="night" title="Nattmodus" aria-label="Nattmodus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" stroke-linejoin="round"/></svg>
+    </button>
+    <hr/>
+    <button class="tool" data-tool="layers" title="Kartlag" aria-label="Kartlag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 3 8l9 5 9-5-9-5Z" stroke-linejoin="round"/><path d="m3 13 9 5 9-5M3 18l9 5 9-5" stroke-linejoin="round" opacity="0.6"/></svg>
+    </button>
+    <button class="tool" data-tool="route" title="Ruteplanlegger" aria-label="Rute">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="5" r="2.4"/><path d="M9 17h5a3 3 0 0 0 3-3V9" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tool" data-tool="weather" title="Vær — Yr.no" aria-label="Vær">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 13a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 16 6.2 3.9 3.9 0 0 1 18 13.7" stroke-linejoin="round"/><path d="M8 18h9M6 21h11" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tool" data-tool="depth" title="Dybdealarm" aria-label="Dybdealarm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5V20m0 0-3.5-3.5M12 20l3.5-3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9h2M17 9h2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tool" data-tool="alerts" title="Farevarsler — MET" aria-label="Farevarsler" id="tool-alerts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4 2.5 20h19L12 4Z" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.4v.1" stroke-linecap="round"/></svg>
+    </button>
+    <hr/>
+    <button class="tool" data-tool="tweaks" title="Kartfilter og utseende" aria-label="Tweaks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- zoom -->
+  <div id="zoom" class="glass">
+    <button id="zin" aria-label="Zoom inn">+</button>
+    <div class="zdiv"></div>
+    <button id="zout" aria-label="Zoom ut">−</button>
+  </div>
+
+  <!-- ============ INSTRUMENT DASH ============ -->
+  <div id="dash" class="glass">
+    <div class="dash-grip" id="dash-grip">
+      <span class="bar"></span><span class="lbl" id="grip-lbl">Mer</span>
+    </div>
+    <div id="inst-primary">
+      <div class="inst" data-open="depth"><span class="v"><span id="v-spd">--</span></span><span class="l">Fart · kn</span></div>
+      <div class="inst"><span class="v"><span id="v-crs">---</span><span class="u">°</span></span><span class="l">Kurs</span></div>
+      <div class="inst" data-open="weather"><span class="v"><span id="v-wind">--</span></span><span class="l">Vind · m/s</span></div>
+      <div class="inst danger" id="inst-depth" data-open="depth"><span class="v"><span id="v-depth">—</span></span><span class="l">Dybde · m</span></div>
+    </div>
+    <div id="inst-secondary">
+      <div class="inst"><span class="v"><span id="wind-arrow" style="display:inline-block;transition:transform .6s ease">↑</span></span><span class="l">V.retn</span></div>
+      <div class="inst" data-open="tide"><span class="v"><span id="v-tide">—</span></span><span class="l">Tidev · cm</span></div>
+      <div class="inst" data-open="weather"><span class="v"><span id="v-wave">--</span></span><span class="l">Bølge · m</span></div>
+      <div class="inst" data-open="weather"><span class="v"><span id="v-cur">--</span></span><span class="l">Strøm · kn</span></div>
+      <div class="inst" data-open="weather"><span class="v"><span id="v-temp">--</span></span><span class="l">Havtemp · °C</span></div>
+    </div>
+  </div>
+
+  <!-- ============ BANNERS ============ -->
+  <div class="banner" id="banner-depth">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4 2.5 20h19L12 4Z" stroke-linejoin="round"/><path d="M12 10v4M12 17v.1" stroke-linecap="round"/></svg>
+    <span>GRUNT VANN — <span id="banner-depth-v"></span> m</span>
+  </div>
+  <div class="banner" id="banner-cpa">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16v.1" stroke-linecap="round"/></svg>
+    <span id="banner-cpa-text">KOLLISJONSKURS</span>
+  </div>
+
+  <!-- ============ PANELS ============ -->
+
+  <!-- Layers -->
+  <div class="panel glass" id="panel-layers">
+    <div class="panel-head">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 3 8l9 5 9-5-9-5Z" stroke-linejoin="round"/><path d="m3 13 9 5 9-5" stroke-linejoin="round" opacity="0.6"/></svg>Kartlag</div>
+      <div class="acts"><button class="icon-btn" data-close aria-label="Lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>
+    </div>
+    <div class="panel-body">
+      <div class="sect-label">Basekart</div>
+      <label class="opt"><input type="radio" name="base" value="sjo" checked /><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><div class="txt">Sjøkart</div><div class="sub">Kartverket sjøkartraster</div></span></label>
+      <label class="opt"><input type="radio" name="base" value="topo" /><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><div class="txt">Topografisk</div><div class="sub">Kartverket toporaster</div></span></label>
+      <div class="divider"></div>
+      <div class="sect-label">Overlay</div>
+      <label class="opt"><input type="checkbox" id="ov-seamark" checked /><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><div class="txt">OpenSeaMap sjømerker</div></span></label>
+      <label class="opt"><input type="checkbox" id="ov-ais" checked /><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><div class="txt">AIS-båter</div></span></label>
+    </div>
+  </div>
+
+  <!-- Route -->
+  <div class="panel glass" id="panel-route">
+    <div class="panel-head">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="5" r="2.4"/><path d="M9 17h5a3 3 0 0 0 3-3V9" stroke-linecap="round"/></svg>Ruteplanlegger</div>
+      <div class="acts">
+        <button class="icon-btn" id="route-clear" aria-label="Slett rute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="icon-btn" data-close aria-label="Lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="route-hint" id="route-hint">Trykk <b>Aktiver</b> og klikk i kartet for å legge til waypoints. Dobbeltklikk et waypoint for å fjerne det.</div>
+      <div class="btn-wrap"><button class="btn primary" id="route-toggle">Aktiver planlegging</button></div>
+      <div id="route-stats" style="display:none">
+        <div class="route-stats-rows">
+          <div class="row"><span class="k">Waypoints</span><span class="val" id="r-wp">0</span></div>
+          <div class="row"><span class="k">Total distanse</span><span class="val" id="r-dist">— <span class="u">nm</span></span></div>
+          <div class="row"><span class="k">Estimert tid</span><span class="val" id="r-eta">—</span></div>
+          <div class="row" id="r-wind-row" style="display:none"><span class="k">🌬️ Vindbasert ETA</span><span class="val" style="color:var(--accent);font-size:11px">aktiv</span></div>
+        </div>
+        <div id="route-legs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weather -->
+  <div class="panel glass" id="panel-weather">
+    <div class="panel-head">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 13a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 16 6.2 3.9 3.9 0 0 1 18 13.7" stroke-linejoin="round"/><path d="M8 18h9" stroke-linecap="round"/></svg>Vær <span class="src">YR.NO</span></div>
+      <div class="acts"><button class="icon-btn" data-close aria-label="Lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>
+    </div>
+    <div class="panel-body">
+      <div class="sect-label">Vind &amp; luft</div>
+      <div class="row"><span class="k">Vind</span><span class="val" id="wx-wind">— <span class="u">m/s</span></span></div>
+      <div class="row"><span class="k">Vindkast</span><span class="val" id="wx-gust">— <span class="u">m/s</span></span></div>
+      <div class="row"><span class="k">Retning</span><span class="val" id="wx-dir">—</span></div>
+      <div class="row"><span class="k">Lufttemperatur</span><span class="val" id="wx-temp">— <span class="u">°C</span></span></div>
+      <div class="row"><span class="k">Lufttrykk</span><span class="val" id="wx-pressure">— <span class="u">hPa</span></span></div>
+      <div class="sect-label">Hav — MET Oceanforecast</div>
+      <div class="row"><span class="k">Bølgehøyde</span><span class="val" id="wx-wave-height">— <span class="u">m</span></span></div>
+      <div class="row"><span class="k">Bølgeperiode</span><span class="val" id="wx-wave-period">— <span class="u">s</span></span></div>
+      <div class="row"><span class="k">Bølgeretning</span><span class="val" id="wx-wave-dir">—</span></div>
+      <div class="row"><span class="k">Strømstyrke</span><span class="val" id="wx-current-speed">— <span class="u">kn</span></span></div>
+      <div class="row"><span class="k">Strømretning</span><span class="val" id="wx-current-dir">—</span></div>
+      <div class="row"><span class="k">Havtemperatur</span><span class="val" id="wx-sea-temp">— <span class="u">°C</span></span></div>
+      <div class="row"><span class="k">Oppdatert</span><span class="val" id="wx-updated" style="font-size:11px;color:var(--c-text-mute)">—</span></div>
+    </div>
+  </div>
+
+  <!-- Tide -->
+  <div class="panel glass" id="panel-tide">
+    <div class="panel-head">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 14c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2" stroke-linecap="round"/><path d="M3 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2" stroke-linecap="round" opacity="0.55"/></svg>Tidevann <span class="src">KARTVERKET</span></div>
+      <div class="acts"><button class="icon-btn" data-close aria-label="Lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>
+    </div>
+    <div class="panel-body">
+      <div class="sect-label" id="tide-station">Stasjon · —</div>
+      <div id="tide-table"></div>
+    </div>
+  </div>
+
+  <!-- Depth alarm -->
+  <div class="panel glass" id="panel-depth">
+    <div class="panel-head">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5V20m0 0-3.5-3.5M12 20l3.5-3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Dybdealarm</div>
+      <div class="acts"><button class="icon-btn" data-close aria-label="Lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>
+    </div>
+    <div class="panel-body">
+      <div class="depth-big" id="depth-big"><span class="k">Gjeldende dybde</span><span class="v" id="depth-live">—</span><span class="u">m</span></div>
+      <div class="row"><span class="k">Alarm når dybde er under</span>
+        <span class="step-field">
+          <button id="depth-minus">−</button>
+          <input id="depth-thr" type="number" value="5" min="1" max="50" />
+          <button id="depth-plus">+</button>
+        </span>
+      </div>
+      <label class="opt" style="border-top:1px solid var(--c-hairline)">
+        <input type="checkbox" id="depth-en" />
+        <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span><div class="txt">Aktiver alarm</div></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="panel glass" id="panel-alerts">
+    <div class="panel-head">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4 2.5 20h19L12 4Z" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.4v.1" stroke-linecap="round"/></svg>Farevarsler <span class="src">MET</span></div>
+      <div class="acts"><button class="icon-btn" data-close aria-label="Lukk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>
+    </div>
+    <div class="panel-body" id="alerts-body">
+      <div class="row"><span class="k" style="color:var(--c-text-mute)">Ingen aktive farevarsler</span></div>
+    </div>
+  </div>
+
+  <div id="tweaks-root"></div>
+
+</div><!-- #app -->
+
+<script type="module" src="/src/js/main.js"></script>
+
+<!-- Tweaks panel: React + Babel (loaded after main module) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+<script type="text/babel" src="/tweaks-panel.jsx"></script>
+<script type="text/babel" src="/seilnav-tweaks.jsx"></script>
 </body>
 </html>

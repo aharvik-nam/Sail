@@ -17,24 +17,20 @@ let aisMarkers = {}
 
 const KARTVERKET_ATTR = '© <a href="https://kartverket.no">Kartverket</a>'
 
+// Current dynamic filter (set by tweaks panel)
+let currentMapFilter = 'grayscale(1)'
+let nightMode = false
+
 const BASE_LAYERS = {
-  bw: {
-    label: 'Sjøkart gråtone',
+  sjo: {
+    label: 'Sjøkart',
     url: 'https://cache.kartverket.no/v1/wmts/1.0.0/sjokartraster/default/webmercator/{z}/{y}/{x}.png',
     options: { attribution: KARTVERKET_ATTR, maxZoom: 18 },
-    filter: 'grayscale(1)',
-  },
-  color: {
-    label: 'Sjøkart farge',
-    url: 'https://cache.kartverket.no/v1/wmts/1.0.0/sjokartraster/default/webmercator/{z}/{y}/{x}.png',
-    options: { attribution: KARTVERKET_ATTR, maxZoom: 18 },
-    filter: 'none',
   },
   topo: {
     label: 'Topografisk',
     url: 'https://cache.kartverket.no/v1/wmts/1.0.0/toporaster/default/webmercator/{z}/{y}/{x}.png',
     options: { attribution: KARTVERKET_ATTR, maxZoom: 18 },
-    filter: 'none',
   },
 }
 
@@ -46,8 +42,8 @@ export function initMap() {
     attributionControl: true,
   })
 
-  // Default: B&W sea chart
-  setBaseLayer('bw')
+  // Default: sea chart (filter applied via tweaks)
+  setBaseLayer('sjo')
 
   // OpenSeaMap seamark overlay
   seamarkLayer = L.tileLayer(
@@ -58,9 +54,6 @@ export function initMap() {
       opacity: 1,
     }
   ).addTo(map)
-
-  // Zoom control top-right
-  L.control.zoom({ position: 'topright' }).addTo(map)
 
   return map
 }
@@ -81,21 +74,31 @@ export function setBaseLayer(key) {
     seamarkLayer.bringToFront()
   }
 
-  // Apply CSS filter to the tile layer's container
-  activeBaseLayer.on('load', () => applyBaseFilter(def.filter))
-  // Also apply immediately if tiles already in cache
-  applyBaseFilter(def.filter)
+  // Apply current filter after tiles load
+  activeBaseLayer.on('load', () => applyBaseFilter())
+  applyBaseFilter()
 
   return key
 }
 
-function applyBaseFilter(filter) {
-  // Leaflet renders tiles inside .leaflet-tile-pane
+function applyBaseFilter() {
   const pane = map.getPanes().tilePane
   if (!pane) return
-  // Only filter the first tile layer (base), not seamark
   const containers = pane.querySelectorAll('.leaflet-layer')
-  if (containers[0]) containers[0].style.filter = filter
+  const filterStr = nightMode
+    ? 'invert(1) hue-rotate(180deg) brightness(0.78) contrast(1.06) saturate(0.9)'
+    : currentMapFilter
+  if (containers[0]) containers[0].style.filter = filterStr
+}
+
+export function setMapFilter(filterStr) {
+  currentMapFilter = filterStr
+  applyBaseFilter()
+}
+
+export function setMapNight(isNight) {
+  nightMode = isNight
+  applyBaseFilter()
 }
 
 export function getBaseLayers() { return BASE_LAYERS }
@@ -110,17 +113,13 @@ export function setSeamarkVisible(visible) {
 
 // SVG boat icon pointing in heading direction
 function createBoatIcon(heading = 0) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <g transform="rotate(${heading}, 16, 16)">
-        <polygon points="16,4 22,26 16,22 10,26" fill="#00aaff" stroke="#0a1628" stroke-width="1.5"/>
-      </g>
-    </svg>`
   return L.divIcon({
-    html: svg,
-    className: '',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    className: 'boat-icon',
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    html: `<svg width="34" height="34" viewBox="0 0 34 34"><g transform="rotate(${heading} 17 17)">
+      <path d="M17 3 23.5 28 17 23.5 10.5 28Z" fill="var(--accent)" stroke="var(--c-bg)" stroke-width="1.6" stroke-linejoin="round"/>
+      </g></svg>`,
   })
 }
 
@@ -143,28 +142,21 @@ export function centerOnBoat(lat, lon) {
 
 // AIS markers
 function createAisIcon(heading = 0, name = '') {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
-      <g transform="rotate(${heading}, 10, 10)">
-        <polygon points="10,2 14,18 10,14 6,18" fill="#00ddaa" stroke="#0a1628" stroke-width="1"/>
-      </g>
-    </svg>`
   return L.divIcon({
-    html: svg,
-    className: '',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    className: 'ais-icon',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    html: `<svg class="ais-tri" width="22" height="22" viewBox="0 0 22 22"><g transform="rotate(${heading} 11 11)">
+      <path d="M11 2 15 19 11 15.5 7 19Z" fill="#5ab0ff" stroke="var(--c-bg)" stroke-width="1.3" stroke-linejoin="round"/>
+      </g></svg>`,
   })
 }
 
 export function updateAisTarget(mmsi, lat, lon, heading, name, speed, course) {
-  const popup = `
-    <div style="font-family:monospace;font-size:12px;color:#e8f0fe;background:#0f2040;padding:8px;border-radius:6px;min-width:140px">
-      <b style="color:#00ddaa">${name || 'Ukjent'}</b><br>
-      MMSI: ${mmsi}<br>
-      Fart: ${speed ? speed.toFixed(1) + ' kn' : '--'}<br>
-      Kurs: ${course ? Math.round(course) + '°' : '--'}
-    </div>`
+  const popup = `<div class="ais-pop"><b>${name || 'Ukjent'}</b>
+    <div class="r"><span>MMSI</span><span>${mmsi}</span></div>
+    <div class="r"><span>Fart</span><span>${speed ? speed.toFixed(1) + ' kn' : '--'}</span></div>
+    <div class="r"><span>Kurs</span><span>${course ? Math.round(course) + '°' : '--'}</span></div></div>`
 
   if (aisMarkers[mmsi]) {
     aisMarkers[mmsi].setLatLng([lat, lon])
