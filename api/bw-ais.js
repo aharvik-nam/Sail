@@ -65,7 +65,25 @@ export default async function handler(req, res) {
       throw new Error(`AIS feil ${aisRes.status}: ${txt}`)
     }
 
-    const data = await aisRes.json()
+    const data    = await aisRes.json()
+    const vessels = Array.isArray(data) ? data : (data.features || [])
+
+    // Debug: logg første fartøy og antall per skipstype
+    if (vessels.length > 0) {
+      const sample = vessels[0]
+      console.log('BW sample vessel:', JSON.stringify(sample))
+
+      const byType = {}
+      for (const v of vessels) {
+        const p    = v.properties || v
+        const type = p.shipType ?? p.vesselType ?? p.messageType ?? p.modelType ?? 'ukjent'
+        byType[type] = (byType[type] || 0) + 1
+      }
+      console.log('BW vessel types:', JSON.stringify(byType))
+      console.log('BW total vessels:', vessels.length)
+    } else {
+      console.log('BW: ingen fartøy returnert')
+    }
 
     res.setHeader('Cache-Control', 'public, max-age=55')
     res.setHeader('Access-Control-Allow-Origin', '*')
