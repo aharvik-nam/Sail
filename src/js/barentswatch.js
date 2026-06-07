@@ -1,12 +1,10 @@
-// BarentsWatch AIS — OAuth2 client_credentials + REST polling
+// BarentsWatch AIS — henter token via Vercel proxy (unngår CORS + skjuler secret)
 import { updateAisTarget } from './map.js'
 import { updateAisState } from './cpa.js'
 
-const TOKEN_URL  = 'https://id.barentswatch.no/connect/token'
-const AIS_URL    = 'https://www.barentswatch.no/bwapi/v2/geodata/ais/openpositions'
-const CLIENT_ID  = import.meta.env.VITE_BW_CLIENT_ID     || ''
-const CLIENT_SEC = import.meta.env.VITE_BW_CLIENT_SECRET || ''
-const POLL_MS    = 60_000   // 60 sekunder mellom oppdateringer
+const TOKEN_PROXY = '/api/bw-token'   // Vercel serverless function
+const AIS_URL     = 'https://www.barentswatch.no/bwapi/v2/geodata/ais/openpositions'
+const POLL_MS     = 60_000
 
 let token       = null
 let tokenExpiry = 0
@@ -21,10 +19,6 @@ export function setBwStatusCallback(cb) { statusCb = cb }
 function setStatus(state, text) { if (statusCb) statusCb(state, text) }
 
 export async function startBarentswatch(centerLat, centerLon, radiusDeg = 0.5) {
-  if (!CLIENT_ID || !CLIENT_SEC) {
-    setStatus('off', 'Ingen BW-nøkkel')
-    return
-  }
   currentBBox = {
     xMin: centerLon - radiusDeg,
     yMin: centerLat - radiusDeg,
@@ -88,25 +82,16 @@ async function getToken() {
   if (token && Date.now() < tokenExpiry - 30_000) return token
 
   try {
-    const body = new URLSearchParams({
-      grant_type:    'client_credentials',
-      client_id:     CLIENT_ID,
-      client_secret: CLIENT_SEC,
-      scope:         'ais',
-    })
-    const res = await fetch(TOKEN_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-    })
-    if (!res.ok) throw new Error(`Token HTTP ${res.status}`)
-    const json = await res.json()
+    const res = await fetch(TOKEN_PROXY, { method: 'POST' })
+    if (!res.ok) throw new Error(`Token proxy HTTP ${res.status}`)
+    const json  = await res.json()
+    if (json.error) throw new Error(json.error)
     token       = json.access_token
     tokenExpiry = Date.now() + json.expires_in * 1000
     return token
   } catch (err) {
     console.warn('BarentsWatch token feil:', err)
-    setStatus('error', 'BW: auth feil')
+    setStatus('error', `BW: ${err.message}`)
     return null
   }
 }
