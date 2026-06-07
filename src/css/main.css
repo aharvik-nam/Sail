@@ -61,14 +61,13 @@ html, body {
   background: var(--c-bg);
   color: var(--c-text);
   font-family: var(--font-ui);
-  touch-action: none;
   -webkit-font-smoothing: antialiased;
 }
 
 #app { position: relative; width: 100vw; height: 100dvh; overflow: hidden; }
 
 /* ---------- Map ---------- */
-#map { position: absolute; inset: 0; background: var(--c-bg); z-index: 1; }
+#map { position: absolute; inset: 0; background: var(--c-bg); z-index: 1; transform: translateZ(0); }
 .leaflet-container { background: var(--c-bg); font-family: var(--font-ui); }
 .leaflet-control-attribution {
   background: rgba(5,16,28,0.6) !important;
@@ -89,11 +88,10 @@ body.night #vignette {
 
 /* ---------- glass surface ---------- */
 .glass {
-  background: var(--c-chrome);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  backdrop-filter: blur(22px) saturate(150%);
+  background: var(--c-chrome-2);
   border: 0.5px solid var(--c-line);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 10px 34px rgba(0,0,0,0.4);
+  /* backdrop-filter removed — causes severe scroll lag (GPU re-composite per frame) */
 }
 
 /* ============================================================

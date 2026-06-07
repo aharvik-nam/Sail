@@ -20,16 +20,25 @@ const KARTVERKET_ATTR = '© <a href="https://kartverket.no">Kartverket</a>'
 let currentMapFilter = 'none'
 let nightMode = false
 
+const TILE_OPTIONS = {
+  attribution: KARTVERKET_ATTR,
+  maxZoom: 18,
+  keepBuffer: 4,          // cache mer rundt viewport → færre fetches under scroll
+  updateWhenIdle: true,   // last kun nye tiles når brukeren stopper
+  updateInterval: 150,    // ms mellom tile-oppdateringer under scroll
+  crossOrigin: true,
+}
+
 const BASE_LAYERS = {
   sjo: {
     label: 'Sjøkart',
     url: 'https://cache.kartverket.no/v1/wmts/1.0.0/sjokartraster/default/webmercator/{z}/{y}/{x}.png',
-    options: { attribution: KARTVERKET_ATTR, maxZoom: 18 },
+    options: TILE_OPTIONS,
   },
   topo: {
     label: 'Topografisk',
     url: 'https://cache.kartverket.no/v1/wmts/1.0.0/toporaster/default/webmercator/{z}/{y}/{x}.png',
-    options: { attribution: KARTVERKET_ATTR, maxZoom: 18 },
+    options: TILE_OPTIONS,
   },
 }
 
@@ -40,6 +49,10 @@ export function initMap() {
     zoomControl: false,
     attributionControl: true,
     preferCanvas: true,
+    renderer: L.canvas({ tolerance: 5 }),
+    // Performance: limit redraws, use RAF
+    updateWhenIdle: false,
+    updateWhenZooming: false,
   })
 
   setBaseLayer('sjo')
