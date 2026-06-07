@@ -27,7 +27,7 @@ let activeAlerts   = []
 let nightMode      = false
 
 // Filter state (synced with tweaks panel)
-let mapFilter = { grayscale: 1, sepia: 0, brightness: 1, contrast: 1, hue: 0, saturate: 1, invert: 0 }
+let mapFilter = { grayscale: 0, sepia: 0, brightness: 1, contrast: 1, hue: 0, saturate: 1, invert: 0 }
 
 // ===== Init =====
 const map = initMap()
@@ -487,6 +487,14 @@ setTimeout(() => {
 ;(() => {
   try {
     const saved = JSON.parse(localStorage.getItem('seilnav.filter') || 'null')
-    if (saved) { Object.assign(mapFilter, saved); setMapFilter(buildFilterStr(mapFilter)) }
+    if (saved) {
+      // Migrate old grayscale-default: if it's the old "gratone" preset, reset to dag
+      const isOldDefault = saved.grayscale >= 1 && !saved.sepia && saved.brightness === 1 &&
+                           saved.contrast === 1 && !saved.hue && saved.saturate === 1 && !saved.invert
+      if (!isOldDefault) {
+        Object.assign(mapFilter, saved)
+        setMapFilter(buildFilterStr(mapFilter))
+      }
+    }
   } catch(e) {}
 })()

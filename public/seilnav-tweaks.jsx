@@ -2,8 +2,8 @@
 const { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakRadio, TweakSelect, TweakColor } = window;
 
 const TWEAK_DEFAULTS = {
-  "theme": "gratone",
-  "grayscale": 1,
+  "theme": "dag",
+  "grayscale": 0,
   "sepia": 0,
   "brightness": 1,
   "contrast": 1,
