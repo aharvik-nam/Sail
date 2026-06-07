@@ -1,26 +1,25 @@
-import L from 'leaflet'
+import maplibregl from 'maplibre-gl'
 import { analyzeleg, bearing, fmtEta } from './polar.js'
+import { updateRouteLine } from './map.js'
 
 const NM = 1852  // metres per nautical mile
 
 let map = null
-let waypoints = []       // [{ lat, lon, marker }]
-let routeLine = null
+let waypoints = []       // [{ lat, lon, marker, el }]
 let planningMode = false
 let onRouteUpdate = null
 
-export function initRoute(leafletMap, onUpdate) {
-  map = leafletMap
+export function initRoute(mapInstance, onUpdate) {
+  map = mapInstance
   onRouteUpdate = onUpdate
 }
 
 export function togglePlanningMode() {
   planningMode = !planningMode
+  map.getCanvas().style.cursor = planningMode ? 'crosshair' : ''
   if (planningMode) {
-    map.getContainer().style.cursor = 'crosshair'
     map.on('click', onMapClick)
   } else {
-    map.getContainer().style.cursor = ''
     map.off('click', onMapClick)
   }
   return planningMode
@@ -29,73 +28,60 @@ export function togglePlanningMode() {
 export function isPlanningMode() { return planningMode }
 
 function onMapClick(e) {
-  addWaypoint(e.latlng.lat, e.latlng.lng)
+  addWaypoint(e.lngLat.lat, e.lngLat.lng)
 }
 
 export function addWaypoint(lat, lon) {
   const idx = waypoints.length + 1
 
-  const icon = L.divIcon({
-    html: `<div class="wp-marker">${idx}</div>`,
-    className: '',
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-  })
+  const el = document.createElement('div')
+  el.className = 'wp-marker'
+  el.textContent = idx
 
-  const marker = L.marker([lat, lon], { icon, draggable: true })
+  const marker = new maplibregl.Marker({ element: el, anchor: 'center', draggable: true })
+    .setLngLat([lon, lat])
     .addTo(map)
-    .bindTooltip(`WP${idx}`, { permanent: false, direction: 'top' })
+
+  const wp = { lat, lon, marker, el }
 
   marker.on('drag', () => {
-    const { lat: la, lng: lo } = marker.getLatLng()
-    const wp = waypoints.find(w => w.marker === marker)
-    if (wp) { wp.lat = la; wp.lon = lo }
+    const { lat: la, lng: lo } = marker.getLngLat()
+    wp.lat = la
+    wp.lon = lo
     redrawLine()
     notifyUpdate()
   })
 
-  marker.on('dblclick', () => removeWaypoint(marker))
+  el.addEventListener('dblclick', (ev) => {
+    ev.stopPropagation()
+    removeWaypoint(wp)
+  })
 
-  waypoints.push({ lat, lon, marker })
+  waypoints.push(wp)
   redrawLine()
   notifyUpdate()
 }
 
-export function removeWaypoint(marker) {
-  const idx = waypoints.findIndex(w => w.marker === marker)
+export function removeWaypoint(wp) {
+  const idx = waypoints.indexOf(wp)
   if (idx === -1) return
-  map.removeLayer(marker)
+  wp.marker.remove()
   waypoints.splice(idx, 1)
   // Renumber remaining markers
-  waypoints.forEach((wp, i) => {
-    wp.marker.setIcon(L.divIcon({
-      html: `<div class="wp-marker">${i + 1}</div>`,
-      className: '',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
-    }))
-  })
+  waypoints.forEach((w, i) => { w.el.textContent = i + 1 })
   redrawLine()
   notifyUpdate()
 }
 
 export function clearRoute() {
-  waypoints.forEach(wp => map.removeLayer(wp.marker))
+  waypoints.forEach(wp => wp.marker.remove())
   waypoints = []
-  if (routeLine) { map.removeLayer(routeLine); routeLine = null }
+  updateRouteLine([])
   notifyUpdate()
 }
 
 function redrawLine() {
-  const latlngs = waypoints.map(wp => [wp.lat, wp.lon])
-  if (routeLine) map.removeLayer(routeLine)
-  if (latlngs.length < 2) { routeLine = null; return }
-  routeLine = L.polyline(latlngs, {
-    color: '#00aaff',
-    weight: 2.5,
-    opacity: 0.85,
-    dashArray: '8 5',
-  }).addTo(map)
+  updateRouteLine(waypoints.map(wp => [wp.lat, wp.lon]))
 }
 
 function haversineNm(lat1, lon1, lat2, lon2) {
@@ -116,11 +102,11 @@ export function getRouteStats(speedKnots, windDir = null, windKnots = null) {
   const hasWind = windDir !== null && windKnots !== null && windKnots > 1
 
   for (let i = 1; i < waypoints.length; i++) {
-    const dist    = haversineNm(
+    const dist = haversineNm(
       waypoints[i-1].lat, waypoints[i-1].lon,
       waypoints[i].lat,   waypoints[i].lon
     )
-    const brng    = bearing(
+    const brng = bearing(
       waypoints[i-1].lat, waypoints[i-1].lon,
       waypoints[i].lat,   waypoints[i].lon
     )
@@ -136,10 +122,9 @@ export function getRouteStats(speedKnots, windDir = null, windKnots = null) {
     totalNm += dist
   }
 
-  // ETA: bruk vindbasert hvis tilgjengelig, ellers GPS-fart
   let etaHours = null
-  if (hasWind && etaValid)        etaHours = totalEta
-  else if (speedKnots > 0.3)      etaHours = totalNm / speedKnots
+  if (hasWind && etaValid)   etaHours = totalEta
+  else if (speedKnots > 0.3) etaHours = totalNm / speedKnots
 
   return { legs, totalNm, etaHours, waypointCount: waypoints.length, windAnalysis: hasWind }
 }

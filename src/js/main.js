@@ -1,6 +1,6 @@
-import 'leaflet/dist/leaflet.css'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import '../css/main.css'
-import L from 'leaflet'
+import maplibregl from 'maplibre-gl'
 
 import { initMap, getMap, updateBoatPosition, centerOnBoat, setSeamarkVisible, setAisVisible,
          setBaseLayer, setAisRisk, setMapFilter, setMapNight } from './map.js'
@@ -135,12 +135,15 @@ map.on('click', async (e) => {
   closePanels()
   const seaCheck = document.getElementById('ov-seamark')
   if (!seaCheck?.checked) return
-  const { lat, lng } = e.latlng
+  const { lat, lng } = e.lngLat
   const elements = await querySeamarks(lat, lng, 80)
   const html = buildSeamarkPopup(elements)
   if (!html) return
-  if (seamarkPopup) seamarkPopup.remove()
-  seamarkPopup = L.popup({ maxWidth: 240 }).setLatLng(e.latlng).setContent(html).openOn(map)
+  if (seamarkPopup) { seamarkPopup.remove(); seamarkPopup = null }
+  seamarkPopup = new maplibregl.Popup({ maxWidth: '240px', className: 'seamark-popup' })
+    .setLngLat([lng, lat])
+    .setHTML(html)
+    .addTo(map)
 })
 
 // ===== Depth =====
