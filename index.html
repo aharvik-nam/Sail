@@ -53,10 +53,35 @@
         <span class="inst-value" id="val-tide">--</span>
         <span class="inst-label">TIDEV cm</span>
       </div>
+      <div class="instrument" id="inst-wave">
+        <span class="inst-value" id="val-wave">--</span>
+        <span class="inst-label">BØLGE m</span>
+      </div>
+      <div class="instrument" id="inst-current">
+        <span class="inst-value" id="val-current">--</span>
+        <span class="inst-label">STRØM kn</span>
+      </div>
       <div class="instrument" id="inst-temp">
         <span class="inst-value" id="val-temp">--</span>
-        <span class="inst-label">TEMP °C</span>
+        <span class="inst-label">HAVTEMP °C</span>
       </div>
+    </div>
+
+    <!-- MetAlerts farevarsel-banner -->
+    <div id="alert-banner" class="hidden">
+      <span id="alert-icon">⚠️</span>
+      <span id="alert-text"></span>
+      <button id="btn-alert-details">Detaljer</button>
+      <button id="btn-alert-close">✕</button>
+    </div>
+
+    <!-- MetAlerts detalj-panel -->
+    <div id="alert-panel" class="panel hidden">
+      <div class="panel-header">
+        <span>Farevarsler — MET</span>
+        <button id="btn-close-alert">✕</button>
+      </div>
+      <div id="alert-list"></div>
     </div>
 
     <!-- Weather panel (expandable) -->
@@ -66,6 +91,7 @@
         <button id="btn-close-weather">✕</button>
       </div>
       <div id="weather-content">
+        <div class="weather-section-title">Vind &amp; luft</div>
         <div class="weather-row">
           <span class="weather-label">Vind</span>
           <span id="wx-wind">Laster...</span>
@@ -79,7 +105,7 @@
           <span id="wx-dir">--</span>
         </div>
         <div class="weather-row">
-          <span class="weather-label">Temperatur</span>
+          <span class="weather-label">Lufttemperatur</span>
           <span id="wx-temp">--</span>
         </div>
         <div class="weather-row">
@@ -89,6 +115,31 @@
         <div class="weather-row">
           <span class="weather-label">Oppdatert</span>
           <span id="wx-updated">--</span>
+        </div>
+        <div class="weather-section-title">Hav — MET Oceanforecast</div>
+        <div class="weather-row">
+          <span class="weather-label">Bølgehøyde</span>
+          <span id="wx-wave-height">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Bølgeperiode</span>
+          <span id="wx-wave-period">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Bølgeretning</span>
+          <span id="wx-wave-dir">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Strømstyrke</span>
+          <span id="wx-current-speed">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Strømretning</span>
+          <span id="wx-current-dir">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Havtemperatur</span>
+          <span id="wx-sea-temp">--</span>
         </div>
       </div>
     </div>
@@ -231,6 +282,12 @@
     <div id="ais-status">
       <span id="ais-icon">⬡</span>
       <span id="ais-text">AIS av</span>
+    </div>
+
+    <!-- BarentsWatch status -->
+    <div id="bw-status">
+      <span id="bw-icon">⬡</span>
+      <span id="bw-text">BW av</span>
     </div>
   </div>
 

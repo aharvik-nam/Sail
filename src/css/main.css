@@ -606,6 +606,115 @@ html, body {
 .leaflet-popup-content { margin: 0 !important; }
 .leaflet-popup-close-button { color: #7a99c0 !important; }
 
+/* ===== BarentsWatch status ===== */
+#bw-status {
+  position: absolute;
+  top: 56px;
+  left: 260px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10,22,40,0.8);
+  border: 1px solid var(--surface2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  backdrop-filter: blur(4px);
+}
+#bw-icon { font-size: 0.8rem; }
+#bw-icon.off       { color: var(--text-dim); }
+#bw-icon.ok        { color: var(--accent2); }
+#bw-icon.error     { color: var(--danger); }
+#bw-icon.connecting{ color: var(--warning); animation: pulse 1s infinite; }
+
+/* ===== MetAlerts banner ===== */
+#alert-banner {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: #ff9900;
+  color: #000;
+}
+#alert-banner.hidden  { display: none; }
+#alert-banner.extreme { background: #cc0000; color: #fff; }
+#alert-banner.severe  { background: #ff4400; color: #fff; }
+
+#alert-banner button {
+  background: rgba(0,0,0,0.2);
+  border: none;
+  border-radius: 10px;
+  color: inherit;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  min-height: 28px;
+  white-space: nowrap;
+}
+
+/* ===== Alert detalj-panel ===== */
+.alert-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--surface2);
+}
+.alert-item:last-child { border-bottom: none; }
+
+.alert-severity {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.alert-title {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.alert-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.alert-time {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+/* ===== Weather section title ===== */
+.weather-section-title {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 16px 4px;
+  border-top: 1px solid var(--surface2);
+}
+.weather-section-title:first-child {
+  border-top: none;
+  padding-top: 4px;
+}
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
