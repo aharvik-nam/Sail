@@ -1,7 +1,7 @@
 import L from 'leaflet'
 import {
   initAisCanvas, aisCanvasUpdate, aisCanvasRemove,
-  aisCanvasSetRisk, aisCanvasSetVisible,
+  aisCanvasSetRisk, aisCanvasSetVisible, aisCanvasHandleClick,
 } from './aisCanvas.js'
 
 // Fix Leaflet default icon paths with Vite
@@ -156,8 +156,12 @@ export function removeAisTarget(mmsi) {
   aisCanvasRemove(mmsi)
 }
 
-export function setAisRisk(mmsi, risk) {
-  aisCanvasSetRisk(mmsi, risk)
+export function setAisRisk(mmsi, risk, cpaNm, tcpaMin) {
+  aisCanvasSetRisk(mmsi, risk, cpaNm, tcpaMin)
+}
+
+export function handleAisClick(containerX, containerY) {
+  return aisCanvasHandleClick(containerX, containerY)
 }
 
 export function setAisVisible(visible) {

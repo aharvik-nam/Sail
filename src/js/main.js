@@ -3,7 +3,7 @@ import '../css/main.css'
 import L from 'leaflet'
 
 import { initMap, getMap, updateBoatPosition, centerOnBoat, setSeamarkVisible, setAisVisible,
-         setBaseLayer, setAisRisk, setMapFilter, setMapNight } from './map.js'
+         setBaseLayer, setAisRisk, setMapFilter, setMapNight, handleAisClick } from './map.js'
 import { startGPS, getLastPosition, msToKnots } from './gps.js'
 import { scheduleWeatherUpdates, degToCompass } from './weather.js'
 import { nearestStation, fetchTide, formatTideTable } from './tide.js'
@@ -113,7 +113,7 @@ setCpaCallback(onCpaUpdate)
 function onCpaUpdate(results) {
   let worstRisk = 'none', worstCpaNm = null, worstTcpaMin = null, worstName = ''
   for (const [mmsi, r] of Object.entries(results)) {
-    setAisRisk(mmsi, r.risk)
+    setAisRisk(mmsi, r.risk, r.cpaNm, r.tcpaMin)
     if (r.risk === 'critical' || (r.risk === 'warning' && worstRisk !== 'critical')) {
       worstRisk = r.risk; worstCpaNm = r.cpaNm; worstTcpaMin = r.tcpaMin; worstName = r.name || mmsi
     }
@@ -129,10 +129,16 @@ function onCpaUpdate(results) {
   }
 }
 
-// ===== Seamark click =====
+// ===== Map click — AIS vessel first, then seamark =====
 map.on('click', async (e) => {
   if (isPlanningMode()) return
   closePanels()
+
+  // AIS vessel hit test (canvas-based, no DOM markers)
+  const cp = e.containerPoint
+  if (handleAisClick(cp.x, cp.y)) return   // vessel found → popup shown, done
+
+  // Seamark click
   const seaCheck = document.getElementById('ov-seamark')
   if (!seaCheck?.checked) return
   const { lat, lng } = e.latlng
@@ -140,7 +146,7 @@ map.on('click', async (e) => {
   const html = buildSeamarkPopup(elements)
   if (!html) return
   if (seamarkPopup) seamarkPopup.remove()
-  seamarkPopup = L.popup({ maxWidth: 240 }).setLatLng(e.lngLat).setContent(html).openOn(map)
+  seamarkPopup = L.popup({ maxWidth: 240 }).setLatLng(e.latlng).setContent(html).openOn(map)
 })
 
 // ===== Depth =====
@@ -460,25 +466,103 @@ function setEl(id, val) {
   if (el) el.textContent = val
 }
 
-// ===== Demo mode =====
-setTimeout(() => {
-  if (!getLastPosition()) {
-    const demoPos = { lat: 59.9035, lon: 10.728, accuracy: 25, speed: 2.6, heading: 185 }
-    lastPosition   = demoPos
-    lastSpeedKnots = msToKnots(2.6)
-    updateBoatPosition(demoPos.lat, demoPos.lon, demoPos.heading)
-    setEl('v-spd', '2.6')
-    setEl('v-crs', '185')
-    setEl('gps-acc', '±25 m')
-    const dot = document.getElementById('gps-dot')
-    if (dot) dot.className = 'dot ok'
-    updateTideInstrument(demoPos.lat, demoPos.lon)
-    firstFix = false
-    fetchWeatherNow()
-    fetchOceanNow()
-    fetchAlertsNow()
+// ===== Demo mode — animert seilas rundt Hovedøya =====
+// Starter umiddelbart hvis ingen ekte GPS-fix
+const DEMO_ROUTE = [
+  { lat: 59.9040, lon: 10.7175 },  // NV
+  { lat: 59.9060, lon: 10.7260 },  // N
+  { lat: 59.9045, lon: 10.7370 },  // NØ
+  { lat: 59.9010, lon: 10.7430 },  // Ø
+  { lat: 59.8960, lon: 10.7400 },  // SØ
+  { lat: 59.8930, lon: 10.7300 },  // S
+  { lat: 59.8945, lon: 10.7170 },  // SV
+  { lat: 59.8990, lon: 10.7130 },  // V
+]
+const DEMO_SPEED_KN = 5.5        // knop
+const DEMO_SPEED_MS = DEMO_SPEED_KN * 0.5144  // m/s
+let demoActive = false
+let demoWpIdx  = 0
+let demoCurLat = DEMO_ROUTE[0].lat
+let demoCurLon = DEMO_ROUTE[0].lon
+let demoTimer  = null
+
+function demoBearing(lat1, lon1, lat2, lon2) {
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180)
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+             Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon)
+  return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360
+}
+
+function demoDistM(lat1, lon1, lat2, lon2) {
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+}
+
+function demoStep() {
+  if (!demoActive) return
+  const target = DEMO_ROUTE[demoWpIdx]
+  const dist   = demoDistM(demoCurLat, demoCurLon, target.lat, target.lon)
+  const hdg    = demoBearing(demoCurLat, demoCurLon, target.lat, target.lon)
+
+  const STEP_S = 1          // sekund per tick
+  const stepM  = DEMO_SPEED_MS * STEP_S
+
+  if (dist < stepM + 5) {
+    // Nådd waypoint — gå til neste
+    demoCurLat = target.lat
+    demoCurLon = target.lon
+    demoWpIdx  = (demoWpIdx + 1) % DEMO_ROUTE.length
+  } else {
+    // Flytt mot waypoint
+    const frac  = stepM / dist
+    demoCurLat += (target.lat - demoCurLat) * frac
+    demoCurLon += (target.lon - demoCurLon) * frac
   }
-}, 8000)
+
+  const pos = { lat: demoCurLat, lon: demoCurLon, accuracy: 8, speed: DEMO_SPEED_MS, heading: hdg }
+  lastPosition   = pos
+  lastSpeedKnots = DEMO_SPEED_KN
+
+  updateBoatPosition(pos.lat, pos.lon, pos.heading)
+  updateOwnState(pos.lat, pos.lon, DEMO_SPEED_KN, pos.heading)
+
+  setEl('v-spd', DEMO_SPEED_KN.toFixed(1))
+  setEl('v-crs', Math.round(hdg).toString().padStart(3, '0'))
+
+  demoTimer = setTimeout(demoStep, STEP_S * 1000)
+}
+
+function startDemo() {
+  if (demoActive || getLastPosition()) return
+  demoActive = true
+
+  // Sentrér kartet på Hovedøya
+  const m = getMap()
+  m.setView([59.9000, 10.7280], 14)
+
+  // GPS-chip grønn
+  const dot = document.getElementById('gps-dot')
+  const acc = document.getElementById('gps-acc')
+  if (dot) dot.className = 'dot ok'
+  if (acc) acc.textContent = '±8 m (demo)'
+
+  // Trigger data-fetches én gang
+  if (!firstFix) return
+  firstFix = false
+  updateTideInstrument(demoCurLat, demoCurLon)
+  fetchWeatherNow()
+  fetchOceanNow()
+  fetchAlertsNow()
+
+  demoStep()
+}
+
+// Start demo straks (250 ms for at kartet skal rekke å initialisere)
+setTimeout(startDemo, 250)
 
 // Apply initial filter from localStorage
 ;(() => {

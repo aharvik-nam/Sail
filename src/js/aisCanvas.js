@@ -23,7 +23,7 @@ export function initAisCanvas(leafletMap) {
   canvas = document.createElement('canvas')
   canvas.style.cssText = [
     'position:absolute', 'inset:0', 'width:100%', 'height:100%',
-    'z-index:450', 'pointer-events:auto',
+    'z-index:450', 'pointer-events:none',   // map click events flow through
   ].join(';')
 
   // Must sit inside the Leaflet container so coordinates stay aligned
@@ -35,10 +35,6 @@ export function initAisCanvas(leafletMap) {
 
   // Redraw on every map movement
   map.on('move zoom viewreset resize', scheduleDraw)
-
-  // Click → popup
-  canvas.addEventListener('click', onCanvasClick)
-  canvas.addEventListener('touchend', onCanvasTouch, { passive: true })
 }
 
 function resizeCanvas() {
@@ -70,13 +66,13 @@ function draw() {
 
   for (const v of Object.values(vessels)) {
     const pt = map.latLngToContainerPoint([v.lat, v.lon])
-    drawVessel(pt.x, pt.y, v.heading ?? 0, v.risk ?? 'none')
+    drawVessel(pt.x, pt.y, v.heading ?? 0, v.risk ?? 'none', v.speed ?? 0)
   }
 
   ctx.restore()
 }
 
-function drawVessel(x, y, headingDeg, risk) {
+function drawVessel(x, y, headingDeg, risk, speedKnots) {
   const S = 9   // half-size in CSS pixels
 
   const color = risk === 'critical' ? '#ff5a4d'
@@ -87,10 +83,24 @@ function drawVessel(x, y, headingDeg, risk) {
   ctx.translate(x, y)
   ctx.rotate(headingDeg * Math.PI / 180)
 
+  // COG / heading line (length scales with speed, min 20px, max 60px)
+  const lineLen = Math.min(60, Math.max(20, (speedKnots || 0) * 6))
+  ctx.beginPath()
+  ctx.moveTo(0, -S * 1.1)
+  ctx.lineTo(0, -S * 1.1 - lineLen)
+  ctx.strokeStyle = color
+  ctx.globalAlpha = 0.55
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([4, 3])
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.globalAlpha = 1
+
+  // Triangle hull
   ctx.beginPath()
   ctx.moveTo(0,          -S * 1.1)   // bow tip
   ctx.lineTo( S * 0.6,   S * 0.8)   // starboard stern
-  ctx.lineTo(0,          S * 0.2)   // stern notch
+  ctx.lineTo(0,          S * 0.2)    // stern notch
   ctx.lineTo(-S * 0.6,   S * 0.8)   // port stern
   ctx.closePath()
 
@@ -103,55 +113,41 @@ function drawVessel(x, y, headingDeg, risk) {
   ctx.restore()
 }
 
-// ── Hit test ──────────────────────────────────────────────────────────────────
-const HIT_PX = 22   // click radius in CSS pixels
+// ── Hit test + popup (called from map click event in main.js) ─────────────────
+const HIT_PX = 26   // click radius in CSS pixels
 
-function hitTest(cx, cy) {
+export function aisCanvasHandleClick(containerX, containerY) {
   let best = null, bestD = HIT_PX
   for (const [mmsi, v] of Object.entries(vessels)) {
     const pt = map.latLngToContainerPoint([v.lat, v.lon])
-    const d  = Math.hypot(pt.x - cx, pt.y - cy)
+    const d  = Math.hypot(pt.x - containerX, pt.y - containerY)
     if (d < bestD) { bestD = d; best = { mmsi, v } }
   }
-  return best
-}
+  if (!best) return false   // no hit — caller can handle normally
 
-function onCanvasClick(e) {
-  const rect = canvas.getBoundingClientRect()
-  const dpr  = window.devicePixelRatio || 1
-  showPopupAt(
-    (e.clientX - rect.left),
-    (e.clientY - rect.top),
-  )
-}
-
-function onCanvasTouch(e) {
-  if (!e.changedTouches.length) return
-  const t    = e.changedTouches[0]
-  const rect = canvas.getBoundingClientRect()
-  showPopupAt(t.clientX - rect.left, t.clientY - rect.top)
-}
-
-function showPopupAt(cx, cy) {
-  const hit = hitTest(cx, cy)
-  if (!hit) return
-
-  const { mmsi, v } = hit
-  const latlng = map.containerPointToLatLng([cx, cy])
+  const { mmsi, v } = best
+  const latlng = map.containerPointToLatLng([containerX, containerY])
 
   if (activePopup) { activePopup.remove(); activePopup = null }
+
+  const cpaLine = v.cpaNm != null
+    ? `<div class="r"><span>CPA</span><span>${v.cpaNm.toFixed(2)} nm · ${Math.round(v.tcpaMin ?? 0)} min</span></div>`
+    : ''
 
   const html = `<div class="ais-pop">
     <b>${v.name || 'Ukjent'}</b>
     <div class="r"><span>MMSI</span><span>${mmsi}</span></div>
     <div class="r"><span>Fart</span><span>${v.speed != null ? v.speed.toFixed(1) + ' kn' : '--'}</span></div>
     <div class="r"><span>Kurs</span><span>${v.course != null ? Math.round(v.course) + '°' : '--'}</span></div>
+    ${cpaLine}
   </div>`
 
   activePopup = L.popup({ maxWidth: 220, className: 'ais-popup' })
     .setLatLng(latlng)
     .setContent(html)
     .openOn(map)
+
+  return true   // hit handled
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -168,8 +164,13 @@ export function aisCanvasRemove(mmsi) {
   scheduleDraw()
 }
 
-export function aisCanvasSetRisk(mmsi, risk) {
-  if (vessels[mmsi]) { vessels[mmsi].risk = risk; scheduleDraw() }
+export function aisCanvasSetRisk(mmsi, risk, cpaNm, tcpaMin) {
+  if (vessels[mmsi]) {
+    vessels[mmsi].risk = risk
+    if (cpaNm != null)   vessels[mmsi].cpaNm   = cpaNm
+    if (tcpaMin != null) vessels[mmsi].tcpaMin = tcpaMin
+    scheduleDraw()
+  }
 }
 
 export function aisCanvasSetVisible(vis) {
