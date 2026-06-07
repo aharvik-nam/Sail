@@ -195,6 +195,31 @@ html, body {
   animation: none;
 }
 
+/* ===== AIS status ===== */
+#ais-status {
+  position: absolute;
+  top: 56px;
+  left: 140px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10,22,40,0.8);
+  border: 1px solid var(--surface2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  backdrop-filter: blur(4px);
+}
+
+#ais-icon { font-size: 0.8rem; }
+#ais-icon.off         { color: var(--text-dim); }
+#ais-icon.connecting  { color: var(--warning); animation: pulse 1s infinite; }
+#ais-icon.connected   { color: var(--accent2); }
+#ais-icon.reconnecting{ color: var(--warning); animation: pulse 1s infinite; }
+#ais-icon.error       { color: var(--danger); }
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }

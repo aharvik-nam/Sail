@@ -6,7 +6,7 @@ import { initMap, getMap, updateBoatPosition, centerOnBoat, setSeamarkVisible, s
 import { startGPS, getLastPosition, msToKnots } from './gps.js'
 import { scheduleWeatherUpdates, degToCompass } from './weather.js'
 import { nearestStation, fetchTide, formatTideTable } from './tide.js'
-import { startAIS, pauseAIS, resumeAIS } from './ais.js'
+import { startAIS, pauseAIS, resumeAIS, setAisStatusCallback } from './ais.js'
 import { querySeamarks, buildSeamarkPopup } from './seamark.js'
 import { lookupDepth, setDepthAlarm, clearDepthAlarm } from './depth.js'
 import { updateOwnState, setCpaCallback, startCpaLoop, CPA_CONFIG } from './cpa.js'
@@ -51,6 +51,14 @@ scheduleWeatherUpdates(
   () => lastPosition,
   (data) => { lastWeather = data; updateWeatherUI(data) }
 )
+
+// ===== AIS status =====
+setAisStatusCallback((state, text) => {
+  const icon = document.getElementById('ais-icon')
+  const label = document.getElementById('ais-text')
+  if (icon) { icon.className = state; icon.textContent = state === 'connected' ? '⬡' : state === 'error' ? '✕' : '⬡' }
+  if (label) label.textContent = `AIS ${text}`
+})
 
 // ===== AIS =====
 setTimeout(() => {
