@@ -245,17 +245,20 @@
         </div>
         <button id="btn-route-toggle" class="route-toggle-btn">Aktiver planlegging</button>
         <div id="route-stats" class="hidden">
-          <div class="route-stat-row">
-            <span class="route-stat-label">Waypoints</span>
-            <span id="route-wp-count">0</span>
-          </div>
-          <div class="route-stat-row">
-            <span class="route-stat-label">Total distanse</span>
-            <span id="route-total-nm">-- nm</span>
-          </div>
-          <div class="route-stat-row">
-            <span class="route-stat-label">ETA (ved nåværende fart)</span>
-            <span id="route-eta">--</span>
+          <div class="route-summary">
+            <div class="route-stat-row">
+              <span class="route-stat-label">Waypoints</span>
+              <span id="route-wp-count">0</span>
+            </div>
+            <div class="route-stat-row">
+              <span class="route-stat-label">Total distanse</span>
+              <span id="route-total-nm">-- nm</span>
+            </div>
+            <div class="route-stat-row">
+              <span class="route-stat-label">Total ETA</span>
+              <span id="route-eta">--</span>
+            </div>
+            <div id="route-wind-source" class="route-wind-source hidden">🌬️ Vindbasert ETA</div>
           </div>
           <div id="route-legs"></div>
         </div>

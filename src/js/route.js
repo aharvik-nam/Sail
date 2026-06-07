@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import { analyzeleg, bearing, fmtEta } from './polar.js'
 
 const NM = 1852  // metres per nautical mile
 
@@ -105,24 +106,42 @@ function haversineNm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) / NM
 }
 
-export function getRouteStats(speedKnots) {
+export function getRouteStats(speedKnots, windDir = null, windKnots = null) {
   if (waypoints.length < 2) return null
 
   const legs = []
-  let totalNm = 0
+  let totalNm   = 0
+  let totalEta  = 0
+  let etaValid  = true
+  const hasWind = windDir !== null && windKnots !== null && windKnots > 1
 
   for (let i = 1; i < waypoints.length; i++) {
-    const dist = haversineNm(
+    const dist    = haversineNm(
       waypoints[i-1].lat, waypoints[i-1].lon,
       waypoints[i].lat,   waypoints[i].lon
     )
-    legs.push({ from: i, to: i+1, distNm: dist })
+    const brng    = bearing(
+      waypoints[i-1].lat, waypoints[i-1].lon,
+      waypoints[i].lat,   waypoints[i].lon
+    )
+
+    let wind = null
+    if (hasWind) {
+      wind = analyzeleg(brng, dist, windDir, windKnots)
+      if (wind.etaHours !== null) totalEta += wind.etaHours
+      else etaValid = false
+    }
+
+    legs.push({ from: i, to: i+1, distNm: dist, bearing: Math.round(brng), wind })
     totalNm += dist
   }
 
-  const etaHours = speedKnots > 0 ? totalNm / speedKnots : null
+  // ETA: bruk vindbasert hvis tilgjengelig, ellers GPS-fart
+  let etaHours = null
+  if (hasWind && etaValid)        etaHours = totalEta
+  else if (speedKnots > 0.3)      etaHours = totalNm / speedKnots
 
-  return { legs, totalNm, etaHours, waypointCount: waypoints.length }
+  return { legs, totalNm, etaHours, waypointCount: waypoints.length, windAnalysis: hasWind }
 }
 
 export function getWaypoints() { return waypoints }

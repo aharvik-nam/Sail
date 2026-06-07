@@ -414,22 +414,70 @@ html, body {
 
 .route-stat-label { color: var(--text-dim); }
 
+.route-summary { margin-bottom: 6px; }
+
+.route-wind-source {
+  font-size: 0.72rem;
+  color: var(--accent2);
+  padding: 3px 0;
+  text-align: right;
+}
+
 #route-legs {
   margin-top: 6px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 
 .route-leg {
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  display: flex;
-  justify-content: space-between;
-  padding: 3px 0;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
 }
 
-.route-leg span:last-child { color: var(--accent); }
+.route-leg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.route-leg-title {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.route-leg-dist {
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+.route-leg-wind-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 10px;
+  color: #000;
+  margin-bottom: 3px;
+}
+
+.route-leg-details {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.route-leg-advice {
+  font-size: 0.70rem;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 3px;
+  line-height: 1.4;
+}
 
 /* Waypoint marker */
 .wp-marker {

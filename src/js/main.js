@@ -158,20 +158,56 @@ function onRouteUpdate(wpCount) {
   if (wpCount >= 2) document.getElementById('route-stats').classList.remove('hidden')
 }
 function refreshRouteStats() {
-  const stats = getRouteStats(lastSpeedKnots)
+  const windDir    = lastWeather?.windDir   ?? null
+  const windKnots  = lastWeather ? lastWeather.windSpeed * 1.94384 : null
+  const stats      = getRouteStats(lastSpeedKnots, windDir, windKnots)
   if (!stats) return
-  setInstrument('route-wp-count',  stats.waypointCount)
-  setInstrument('route-total-nm',  stats.totalNm.toFixed(1) + ' nm')
-  if (stats.etaHours !== null && lastSpeedKnots > 0.3) {
+
+  setInstrument('route-wp-count', stats.waypointCount)
+  setInstrument('route-total-nm', stats.totalNm.toFixed(1) + ' nm')
+
+  const windSrc = document.getElementById('route-wind-source')
+  if (stats.etaHours !== null) {
     const h = Math.floor(stats.etaHours)
     const m = Math.round((stats.etaHours - h) * 60)
     setInstrument('route-eta', h > 0 ? `${h}t ${m}min` : `${m} min`)
+    if (windSrc) {
+      windSrc.classList.toggle('hidden', !stats.windAnalysis)
+    }
   } else {
-    setInstrument('route-eta', '-- (ingen fart)')
+    setInstrument('route-eta', '-- (ingen fart/vind)')
+    if (windSrc) windSrc.classList.add('hidden')
   }
-  document.getElementById('route-legs').innerHTML = stats.legs.map(leg =>
-    `<div class="route-leg"><span>WP${leg.from} → WP${leg.to}</span><span>${leg.distNm.toFixed(2)} nm</span></div>`
-  ).join('')
+
+  document.getElementById('route-legs').innerHTML = stats.legs.map(leg => {
+    const w = leg.wind
+    if (w) {
+      const etaTxt = w.etaHours !== null
+        ? (() => { const h = Math.floor(w.etaHours); const m = Math.round((w.etaHours-h)*60); return h>0?`${h}t ${m}min`:`${m}min` })()
+        : '--'
+      const speedTxt = w.speed ? w.speed.toFixed(1) + ' kn' : '--'
+      return `<div class="route-leg" style="border-left-color:${w.color}">
+        <div class="route-leg-header">
+          <span class="route-leg-title">WP${leg.from} → WP${leg.to}</span>
+          <span class="route-leg-dist">${leg.distNm.toFixed(2)} nm</span>
+        </div>
+        <span class="route-leg-wind-label" style="background:${w.color}">${w.label}</span>
+        <div class="route-leg-details">
+          TWA ${Math.round(w.twa)}° ${w.twaSide === 'stb' ? '(styrbord)' : '(babord)'}
+          &nbsp;·&nbsp; ${speedTxt}
+          &nbsp;·&nbsp; ${Math.round(leg.bearing)}°
+          &nbsp;·&nbsp; ETA ${etaTxt}
+        </div>
+        <div class="route-leg-advice">${w.advice}</div>
+      </div>`
+    }
+    return `<div class="route-leg">
+      <div class="route-leg-header">
+        <span class="route-leg-title">WP${leg.from} → WP${leg.to}</span>
+        <span class="route-leg-dist">${leg.distNm.toFixed(2)} nm · ${Math.round(leg.bearing)}°</span>
+      </div>
+    </div>`
+  }).join('')
 }
 
 // ===== Windy =====
