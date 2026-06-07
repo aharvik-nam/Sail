@@ -1,25 +1,26 @@
-import maplibregl from 'maplibre-gl'
+import L from 'leaflet'
 import { analyzeleg, bearing, fmtEta } from './polar.js'
 import { updateRouteLine } from './map.js'
 
-const NM = 1852  // metres per nautical mile
+const NM = 1852
 
 let map = null
-let waypoints = []       // [{ lat, lon, marker, el }]
+let waypoints = []       // [{ lat, lon, marker }]
 let planningMode = false
 let onRouteUpdate = null
 
-export function initRoute(mapInstance, onUpdate) {
-  map = mapInstance
+export function initRoute(leafletMap, onUpdate) {
+  map = leafletMap
   onRouteUpdate = onUpdate
 }
 
 export function togglePlanningMode() {
   planningMode = !planningMode
-  map.getCanvas().style.cursor = planningMode ? 'crosshair' : ''
   if (planningMode) {
+    map.getContainer().style.cursor = 'crosshair'
     map.on('click', onMapClick)
   } else {
+    map.getContainer().style.cursor = ''
     map.off('click', onMapClick)
   }
   return planningMode
@@ -28,34 +29,33 @@ export function togglePlanningMode() {
 export function isPlanningMode() { return planningMode }
 
 function onMapClick(e) {
-  addWaypoint(e.lngLat.lat, e.lngLat.lng)
+  addWaypoint(e.latlng.lat, e.latlng.lng)
 }
 
 export function addWaypoint(lat, lon) {
   const idx = waypoints.length + 1
 
-  const el = document.createElement('div')
-  el.className = 'wp-marker'
-  el.textContent = idx
+  const icon = L.divIcon({
+    html: `<div class="wp-marker">${idx}</div>`,
+    className: '',
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  })
 
-  const marker = new maplibregl.Marker({ element: el, anchor: 'center', draggable: true })
-    .setLngLat([lon, lat])
+  const marker = L.marker([lat, lon], { icon, draggable: true })
     .addTo(map)
+    .bindTooltip(`WP${idx}`, { permanent: false, direction: 'top' })
 
-  const wp = { lat, lon, marker, el }
+  const wp = { lat, lon, marker }
 
   marker.on('drag', () => {
-    const { lat: la, lng: lo } = marker.getLngLat()
-    wp.lat = la
-    wp.lon = lo
+    const { lat: la, lng: lo } = marker.getLatLng()
+    wp.lat = la; wp.lon = lo
     redrawLine()
     notifyUpdate()
   })
 
-  el.addEventListener('dblclick', (ev) => {
-    ev.stopPropagation()
-    removeWaypoint(wp)
-  })
+  marker.on('dblclick', () => removeWaypoint(wp))
 
   waypoints.push(wp)
   redrawLine()
@@ -65,16 +65,20 @@ export function addWaypoint(lat, lon) {
 export function removeWaypoint(wp) {
   const idx = waypoints.indexOf(wp)
   if (idx === -1) return
-  wp.marker.remove()
+  map.removeLayer(wp.marker)
   waypoints.splice(idx, 1)
-  // Renumber remaining markers
-  waypoints.forEach((w, i) => { w.el.textContent = i + 1 })
+  waypoints.forEach((w, i) => {
+    w.marker.setIcon(L.divIcon({
+      html: `<div class="wp-marker">${i + 1}</div>`,
+      className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+    }))
+  })
   redrawLine()
   notifyUpdate()
 }
 
 export function clearRoute() {
-  waypoints.forEach(wp => wp.marker.remove())
+  waypoints.forEach(wp => map.removeLayer(wp.marker))
   waypoints = []
   updateRouteLine([])
   notifyUpdate()
@@ -96,20 +100,12 @@ export function getRouteStats(speedKnots, windDir = null, windKnots = null) {
   if (waypoints.length < 2) return null
 
   const legs = []
-  let totalNm   = 0
-  let totalEta  = 0
-  let etaValid  = true
+  let totalNm = 0, totalEta = 0, etaValid = true
   const hasWind = windDir !== null && windKnots !== null && windKnots > 1
 
   for (let i = 1; i < waypoints.length; i++) {
-    const dist = haversineNm(
-      waypoints[i-1].lat, waypoints[i-1].lon,
-      waypoints[i].lat,   waypoints[i].lon
-    )
-    const brng = bearing(
-      waypoints[i-1].lat, waypoints[i-1].lon,
-      waypoints[i].lat,   waypoints[i].lon
-    )
+    const dist = haversineNm(waypoints[i-1].lat, waypoints[i-1].lon, waypoints[i].lat, waypoints[i].lon)
+    const brng = bearing(waypoints[i-1].lat, waypoints[i-1].lon, waypoints[i].lat, waypoints[i].lon)
 
     let wind = null
     if (hasWind) {

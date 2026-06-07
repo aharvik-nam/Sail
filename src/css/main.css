@@ -69,17 +69,15 @@ html, body {
 
 /* ---------- Map ---------- */
 #map { position: absolute; inset: 0; background: var(--c-bg); z-index: 1; }
-.maplibregl-map { background: var(--c-bg); font-family: var(--font-ui); }
-.maplibregl-ctrl-attrib {
+.leaflet-container { background: var(--c-bg); font-family: var(--font-ui); }
+.leaflet-control-attribution {
   background: rgba(5,16,28,0.6) !important;
   color: var(--c-text-mute) !important;
   font-size: 9px !important; font-family: var(--font-ui);
   padding: 1px 6px !important; border-radius: 6px 0 0 0;
 }
-.maplibregl-ctrl-attrib a { color: var(--c-text-dim) !important; }
-.maplibregl-ctrl-attrib-button { filter: invert(0.6); }
-.maplibregl-ctrl-bottom-right { z-index: 2 !important; }
-.maplibregl-canvas { display: block; }
+.leaflet-control-attribution a { color: var(--c-text-dim) !important; }
+.leaflet-control-zoom { display: none !important; }
 
 #vignette {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
@@ -398,16 +396,11 @@ body.night #vignette {
   border: 2px solid var(--c-bg); display: flex; align-items: center; justify-content: center;
   font-family: var(--font-num); font-weight: 700; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
-/* MapLibre popup styling */
-.maplibregl-popup-content {
-  background: var(--c-chrome-2) !important; color: var(--c-text) !important;
-  border: 0.5px solid var(--c-line) !important; border-radius: var(--r-md) !important;
-  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-  padding: 0 !important; box-shadow: 0 8px 30px rgba(0,0,0,0.6) !important;
-  font-family: var(--font-ui);
-}
-.maplibregl-popup-tip { border-top-color: var(--c-chrome-2) !important; }
-.maplibregl-popup-close-button { color: var(--c-text-mute) !important; padding: 4px 8px; }
+/* Leaflet popup styling */
+.leaflet-popup-content-wrapper { background: var(--c-chrome-2) !important; color: var(--c-text) !important; border: 0.5px solid var(--c-line) !important; border-radius: var(--r-md) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.leaflet-popup-tip { background: var(--c-chrome-2) !important; }
+.leaflet-popup-content { margin: 0 !important; font-family: var(--font-ui); }
+.leaflet-popup-close-button { color: var(--c-text-mute) !important; }
 .ais-pop { padding: 11px 13px; min-width: 150px; }
 .ais-pop b { color: var(--accent); font-family: var(--font-label); font-size: 14px; }
 .ais-pop .r { display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px; color: var(--c-text-dim); }
