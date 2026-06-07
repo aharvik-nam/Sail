@@ -1,7 +1,33 @@
 import maplibregl from 'maplibre-gl'
 
 const MAPTILER_KEY = 'I30ZJuzLgpLmqLmUzOe8'
-const OCEAN_STYLE  = `https://api.maptiler.com/maps/ocean/style.json?key=${MAPTILER_KEY}`
+const KV_ATTR = '© <a href="https://kartverket.no">Kartverket</a>'
+const OSM_ATTR = '© <a href="https://openseamap.org">OpenSeaMap</a>'
+
+// Inline MapLibre styles — raster tiles, no remote JSON fetch needed
+function buildStyle(baseKey) {
+  const TILES = {
+    sjo:  'https://cache.kartverket.no/v1/wmts/1.0.0/sjokartraster/default/webmercator/{z}/{y}/{x}.png',
+    topo: 'https://cache.kartverket.no/v1/wmts/1.0.0/toporaster/default/webmercator/{z}/{y}/{x}.png',
+  }
+  return {
+    version: 8,
+    glyphs: `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${MAPTILER_KEY}`,
+    sources: {
+      base: {
+        type: 'raster',
+        tiles: [TILES[baseKey] || TILES.sjo],
+        tileSize: 256,
+        attribution: KV_ATTR,
+        maxzoom: 18,
+      },
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#05101c' } },
+      { id: 'base-raster', type: 'raster', source: 'base', paint: { 'raster-opacity': 1 } },
+    ],
+  }
+}
 
 // Oslofjord center
 const DEFAULT_CENTER = [10.6, 59.44]   // [lon, lat] — MapLibre order
@@ -9,7 +35,8 @@ const DEFAULT_ZOOM   = 10
 
 let map = null
 let nightMode      = false
-let currentFilter  = 'grayscale(1)'
+let currentFilter  = 'none'
+let currentBaseKey = 'sjo'
 
 // Markers
 let boatMarker  = null
@@ -21,7 +48,7 @@ let routeLoaded = false
 export function initMap() {
   map = new maplibregl.Map({
     container: 'map',
-    style: OCEAN_STYLE,
+    style: buildStyle('sjo'),
     center: DEFAULT_CENTER,
     zoom:   DEFAULT_ZOOM,
     attributionControl: false,
@@ -133,25 +160,14 @@ export function setMapNight(isNight) {
 
 // ── Layers ────────────────────────────────────────────────────────────────────
 export function setBaseLayer(key) {
-  // MapTiler Ocean is the only style; topo would need a style swap — keep API compatible
-  // For now only 'ocean' / 'sjo' is meaningful; topo = topo from MapTiler
-  const STYLES = {
-    sjo:  `https://api.maptiler.com/maps/ocean/style.json?key=${MAPTILER_KEY}`,
-    topo: `https://api.maptiler.com/maps/topo-v2/style.json?key=${MAPTILER_KEY}`,
-  }
-  const url = STYLES[key]
-  if (!url) return
-  map.setStyle(url)
-  // Re-add overlays after style loads
+  if (!['sjo', 'topo'].includes(key)) return
+  currentBaseKey = key
+  routeLoaded = false
+  map.setStyle(buildStyle(key))
   map.once('styledata', () => {
-    routeLoaded = false
-    setTimeout(() => {
-      if (map.isStyleLoaded()) {
-        addOverlaysAfterStyle()
-      } else {
-        map.once('load', addOverlaysAfterStyle)
-      }
-    }, 100)
+    // styledata fires when style is parsed; wait for it to be fully loaded
+    if (map.isStyleLoaded()) addOverlaysAfterStyle()
+    else map.once('idle', addOverlaysAfterStyle)
   })
   return key
 }
@@ -164,8 +180,10 @@ function addOverlaysAfterStyle() {
       type: 'raster',
       tiles: ['https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'],
       tileSize: 256,
-      attribution: '© <a href="https://openseamap.org">OpenSeaMap</a>',
+      attribution: OSM_ATTR,
     })
+  }
+  if (!map.getLayer('openseamap')) {
     map.addLayer({
       id: 'openseamap',
       type: 'raster',
@@ -179,6 +197,8 @@ function addOverlaysAfterStyle() {
       type: 'geojson',
       data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } },
     })
+  }
+  if (!map.getLayer('route-line')) {
     map.addLayer({
       id: 'route-line',
       type: 'line',
@@ -198,7 +218,7 @@ function addOverlaysAfterStyle() {
 
 export function getBaseLayers() {
   return {
-    sjo:  { label: 'Sjøkart (Ocean)' },
+    sjo:  { label: 'Sjøkart' },
     topo: { label: 'Topografisk' },
   }
 }
