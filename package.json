@@ -1,0 +1,18 @@
+{
+  "name": "seilnav",
+  "version": "1.0.0",
+  "description": "PWA seilapp for fritidsbåt i Oslofjorden",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "vite-plugin-pwa": "^0.20.0"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  }
+}

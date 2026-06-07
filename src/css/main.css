@@ -1,0 +1,595 @@
+/* ===== CSS Custom Properties ===== */
+:root {
+  --bg: #0a1628;
+  --surface: #0f2040;
+  --surface2: #1a3055;
+  --accent: #00aaff;
+  --accent2: #00ddaa;
+  --text: #e8f0fe;
+  --text-dim: #7a99c0;
+  --danger: #ff4444;
+  --warning: #ffaa00;
+  --panel-radius: 12px;
+  --inst-size: 80px;
+  --touch-min: 44px;
+}
+
+/* Night mode overrides */
+body.night-mode {
+  --bg: #0a0000;
+  --surface: #1a0000;
+  --surface2: #2a0000;
+  --accent: #ff3300;
+  --accent2: #ff6600;
+  --text: #ff9977;
+  --text-dim: #883300;
+}
+
+body.night-mode #map {
+  filter: invert(1) hue-rotate(180deg) brightness(0.7);
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  background: var(--bg);
+  color: var(--text);
+  touch-action: none;
+}
+
+/* ===== App layout ===== */
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Map ===== */
+#map {
+  flex: 1;
+  width: 100%;
+  background: #0a1628;
+  z-index: 1;
+}
+
+/* Leaflet attribution small */
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  opacity: 0.6;
+}
+
+/* ===== Toolbar ===== */
+#toolbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(to bottom, rgba(10,22,40,0.95), transparent);
+  pointer-events: none;
+}
+
+#toolbar-left, #toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: all;
+}
+
+#app-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px var(--accent);
+}
+
+#toolbar button {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  background: rgba(15,32,64,0.85);
+  border: 1px solid var(--surface2);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.1s;
+  backdrop-filter: blur(4px);
+}
+
+#toolbar button:active {
+  transform: scale(0.92);
+  background: var(--surface2);
+}
+
+/* ===== Instrument panel ===== */
+#instruments {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  padding: 8px 4px 12px;
+  background: linear-gradient(to top, rgba(10,22,40,0.97) 70%, transparent);
+  gap: 2px;
+}
+
+.instrument {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--inst-size);
+  padding: 4px 2px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.instrument:active {
+  background: var(--surface);
+}
+
+.inst-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--accent);
+  line-height: 1;
+  text-shadow: 0 0 8px var(--accent);
+  white-space: nowrap;
+}
+
+.inst-label {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#wind-arrow {
+  display: inline-block;
+  font-size: 1.4rem;
+  transition: transform 0.5s ease;
+}
+
+/* ===== GPS status ===== */
+#gps-status {
+  position: absolute;
+  top: 56px;
+  left: 12px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10,22,40,0.8);
+  border: 1px solid var(--surface2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  backdrop-filter: blur(4px);
+}
+
+#gps-icon {
+  font-size: 0.8rem;
+  color: var(--warning);
+  animation: pulse 2s infinite;
+}
+
+#gps-icon.fix {
+  color: var(--accent2);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ===== Panels ===== */
+.panel {
+  position: absolute;
+  bottom: calc(var(--inst-size) + 20px);
+  left: 12px;
+  right: 12px;
+  z-index: 1001;
+  background: rgba(10,22,40,0.96);
+  border: 1px solid var(--surface2);
+  border-radius: var(--panel-radius);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transform: translateY(0);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.panel.hidden {
+  display: none;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--accent);
+  border-bottom: 1px solid var(--surface2);
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  background: rgba(10,22,40,0.98);
+}
+
+.panel-header button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1rem;
+  cursor: pointer;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Weather panel */
+.weather-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(26,48,85,0.5);
+  font-size: 0.85rem;
+}
+
+.weather-row:last-child { border-bottom: none; }
+
+.weather-label {
+  color: var(--text-dim);
+}
+
+/* Tide panel */
+#tide-station {
+  padding: 10px 16px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+#tide-table {
+  padding: 0 8px 12px;
+}
+
+.tide-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 8px 8px;
+  border-bottom: 1px solid rgba(26,48,85,0.5);
+  font-size: 0.8rem;
+  gap: 4px;
+}
+
+.tide-row:last-child { border-bottom: none; }
+
+.tide-high { color: var(--accent); }
+.tide-low  { color: var(--text-dim); }
+
+/* Layer panel */
+#layer-content {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: var(--touch-min);
+}
+
+.layer-toggle input[type="checkbox"],
+.layer-toggle input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.layer-section-title {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 0 4px;
+}
+
+.layer-divider {
+  height: 1px;
+  background: var(--surface2);
+  margin: 4px 0;
+}
+
+/* ===== Leaflet custom markers ===== */
+.boat-marker {
+  width: 0; height: 0;
+  border: none;
+  background: none;
+}
+
+.course-arrow {
+  position: absolute;
+  transform-origin: bottom center;
+}
+
+/* AIS markers */
+.ais-marker {
+  background: var(--accent2);
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+}
+
+/* ===== Route planner ===== */
+#route-content {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.route-mode-off { font-size: 0.78rem; color: var(--text-dim); line-height: 1.5; }
+.route-mode-on  { font-size: 0.78rem; color: var(--accent2); line-height: 1.5; }
+
+.route-toggle-btn {
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  cursor: pointer;
+  min-height: var(--touch-min);
+  transition: background 0.15s;
+}
+
+.route-toggle-btn.active {
+  background: rgba(0,170,255,0.15);
+}
+
+.route-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(26,48,85,0.5);
+}
+
+.route-stat-label { color: var(--text-dim); }
+
+#route-legs {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.route-leg {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.route-leg span:last-child { color: var(--accent); }
+
+/* Waypoint marker */
+.wp-marker {
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
+  color: #0a1628;
+  font-weight: bold;
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #0a1628;
+  cursor: pointer;
+}
+
+/* CPA banner */
+#cpa-banner {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 2001;
+  background: rgba(255, 100, 0, 0.92);
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 16px;
+  pointer-events: none;
+  max-width: 200px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+#cpa-banner.hidden { display: none; }
+#cpa-banner.critical { background: rgba(255, 30, 30, 0.95); animation: blink-alarm 0.8s infinite; }
+
+/* AIS risk colours applied via JS */
+.ais-warn    { filter: drop-shadow(0 0 4px orange); }
+.ais-critical { filter: drop-shadow(0 0 6px red); }
+
+/* ===== Depth alarm panel ===== */
+#depth-content {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.depth-current {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.depth-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  flex: 1;
+}
+
+#val-depth-live {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent);
+}
+
+.depth-unit {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.depth-alarm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  min-height: var(--touch-min);
+}
+
+.depth-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#depth-threshold {
+  width: 64px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  text-align: center;
+}
+
+#depth-threshold:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.depth-status {
+  font-size: 0.8rem;
+  min-height: 1.2em;
+  color: var(--accent2);
+}
+
+.depth-status.alarm { color: var(--danger); }
+
+/* Alarm button active state */
+.alarm-btn.active {
+  background: rgba(255, 68, 68, 0.2) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+/* Depth alarm banner */
+#depth-alarm-banner {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  background: var(--danger);
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 8px 20px;
+  border-radius: 20px;
+  animation: blink-alarm 0.8s infinite;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#depth-alarm-banner.hidden { display: none; }
+
+@keyframes blink-alarm {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ===== Windy panel ===== */
+.windy-panel {
+  bottom: calc(var(--inst-size) + 20px);
+  top: 60px;
+}
+
+#windy-content {
+  height: calc(100% - 48px);
+}
+
+#windy-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ===== Seamark popup ===== */
+.leaflet-popup-content-wrapper {
+  background: #0f2040 !important;
+  border: 1px solid #1a3055 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip { background: #0f2040 !important; }
+.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-close-button { color: #7a99c0 !important; }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+/* ===== Responsive for tablet ===== */
+@media (min-width: 600px) {
+  .inst-value { font-size: 1.7rem; }
+  .inst-label { font-size: 0.65rem; }
+  #instruments { padding: 10px 12px 16px; }
+  .panel { left: 20px; right: 20px; max-width: 480px; }
+}

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a1628" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SeilNav</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/src/css/main.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="map"></div>
+
+    <!-- Top toolbar -->
+    <div id="toolbar">
+      <div id="toolbar-left">
+        <span id="app-title">⛵ SeilNav</span>
+      </div>
+      <div id="toolbar-right">
+        <button id="btn-center" title="Sentrér på posisjon" aria-label="Sentrér">📍</button>
+        <button id="btn-night" title="Nattmodus" aria-label="Nattmodus">🔴</button>
+        <button id="btn-route" title="Ruteplanlegger" aria-label="Rute">📐</button>
+        <button id="btn-windy" title="Windy vindkart" aria-label="Windy">🌬️</button>
+        <button id="btn-depth" title="Dybdealarm" aria-label="Dybdealarm" class="alarm-btn">⚓</button>
+        <button id="btn-layers" title="Kartlag" aria-label="Kartlag">🗺️</button>
+      </div>
+    </div>
+
+    <!-- Instrument panel -->
+    <div id="instruments">
+      <div class="instrument" id="inst-speed">
+        <span class="inst-value" id="val-speed">--</span>
+        <span class="inst-label">KNP</span>
+      </div>
+      <div class="instrument" id="inst-course">
+        <span class="inst-value" id="val-course">---</span>
+        <span class="inst-label">KRS °</span>
+      </div>
+      <div class="instrument" id="inst-wind">
+        <span class="inst-value" id="val-wind">--</span>
+        <span class="inst-label">VIND m/s</span>
+      </div>
+      <div class="instrument" id="inst-winddir">
+        <span class="inst-value" id="val-winddir">
+          <span id="wind-arrow">↑</span>
+        </span>
+        <span class="inst-label">V.RETN</span>
+      </div>
+      <div class="instrument" id="inst-tide">
+        <span class="inst-value" id="val-tide">--</span>
+        <span class="inst-label">TIDEV cm</span>
+      </div>
+      <div class="instrument" id="inst-temp">
+        <span class="inst-value" id="val-temp">--</span>
+        <span class="inst-label">TEMP °C</span>
+      </div>
+    </div>
+
+    <!-- Weather panel (expandable) -->
+    <div id="weather-panel" class="panel hidden">
+      <div class="panel-header">
+        <span>Vær — Yr.no</span>
+        <button id="btn-close-weather">✕</button>
+      </div>
+      <div id="weather-content">
+        <div class="weather-row">
+          <span class="weather-label">Vind</span>
+          <span id="wx-wind">Laster...</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Vindkast</span>
+          <span id="wx-gust">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Retning</span>
+          <span id="wx-dir">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Temperatur</span>
+          <span id="wx-temp">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Trykk</span>
+          <span id="wx-pressure">--</span>
+        </div>
+        <div class="weather-row">
+          <span class="weather-label">Oppdatert</span>
+          <span id="wx-updated">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tide panel -->
+    <div id="tide-panel" class="panel hidden">
+      <div class="panel-header">
+        <span>Tidevann</span>
+        <button id="btn-close-tide">✕</button>
+      </div>
+      <div id="tide-content">
+        <div id="tide-station">Laster stasjon...</div>
+        <div id="tide-table"></div>
+      </div>
+    </div>
+
+    <!-- Layer switcher -->
+    <div id="layer-panel" class="panel hidden">
+      <div class="panel-header">
+        <span>Kartlag</span>
+        <button id="btn-close-layers">✕</button>
+      </div>
+      <div id="layer-content">
+        <div class="layer-section-title">Basekart</div>
+        <label class="layer-toggle">
+          <input type="radio" name="baselayer" value="bw" checked />
+          <span>Sjøkart gråtone</span>
+        </label>
+        <label class="layer-toggle">
+          <input type="radio" name="baselayer" value="color" />
+          <span>Sjøkart farge</span>
+        </label>
+        <label class="layer-toggle">
+          <input type="radio" name="baselayer" value="topo" />
+          <span>Topografisk</span>
+        </label>
+        <div class="layer-divider"></div>
+        <div class="layer-section-title">Overlay</div>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-seamark" checked />
+          <span>OpenSeaMap sjømerker</span>
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layer-ais" checked />
+          <span>AIS-båter</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Depth alarm panel -->
+    <div id="depth-panel" class="panel hidden">
+      <div class="panel-header">
+        <span>Dybdealarm</span>
+        <button id="btn-close-depth">✕</button>
+      </div>
+      <div id="depth-content">
+        <div class="depth-current">
+          <span class="depth-label">Gjeldende dybde</span>
+          <span id="val-depth-live">--</span>
+          <span class="depth-unit">m</span>
+        </div>
+        <div class="depth-alarm-row">
+          <label for="depth-threshold">Alarm under</label>
+          <div class="depth-input-group">
+            <input type="number" id="depth-threshold" min="1" max="50" value="5" />
+            <span class="depth-unit">m</span>
+          </div>
+        </div>
+        <div class="depth-alarm-row">
+          <label class="layer-toggle">
+            <input type="checkbox" id="depth-alarm-enabled" />
+            <span>Aktiver alarm</span>
+          </label>
+        </div>
+        <div id="depth-alarm-status" class="depth-status"></div>
+      </div>
+    </div>
+
+    <!-- Windy panel -->
+    <div id="windy-panel" class="panel windy-panel hidden">
+      <div class="panel-header">
+        <span>Windy vindkart</span>
+        <button id="btn-close-windy">✕</button>
+      </div>
+      <div id="windy-content">
+        <iframe id="windy-iframe" src="" frameborder="0" allowfullscreen></iframe>
+      </div>
+    </div>
+
+    <!-- Route panel -->
+    <div id="route-panel" class="panel hidden">
+      <div class="panel-header">
+        <span>Ruteplanlegger</span>
+        <div style="display:flex;gap:6px">
+          <button id="btn-route-clear" title="Slett rute">🗑️</button>
+          <button id="btn-close-route">✕</button>
+        </div>
+      </div>
+      <div id="route-content">
+        <div id="route-mode-indicator" class="route-mode-off">
+          Trykk <b>Aktiver</b> og klikk på kartet for å legge til waypoints.<br>
+          Dobbeltklikk på waypoint for å slette det.
+        </div>
+        <button id="btn-route-toggle" class="route-toggle-btn">Aktiver planlegging</button>
+        <div id="route-stats" class="hidden">
+          <div class="route-stat-row">
+            <span class="route-stat-label">Waypoints</span>
+            <span id="route-wp-count">0</span>
+          </div>
+          <div class="route-stat-row">
+            <span class="route-stat-label">Total distanse</span>
+            <span id="route-total-nm">-- nm</span>
+          </div>
+          <div class="route-stat-row">
+            <span class="route-stat-label">ETA (ved nåværende fart)</span>
+            <span id="route-eta">--</span>
+          </div>
+          <div id="route-legs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPA warning banner -->
+    <div id="cpa-banner" class="hidden">
+      <span id="cpa-banner-text">⚠️ KOLLISJONSKURS</span>
+    </div>
+
+    <!-- Depth alarm banner -->
+    <div id="depth-alarm-banner" class="hidden">
+      ⚠️ GRUNT VANN — <span id="alarm-depth-val"></span> m
+    </div>
+
+    <!-- GPS status -->
+    <div id="gps-status">
+      <span id="gps-icon">⊙</span>
+      <span id="gps-accuracy">Ingen GPS</span>
+    </div>
+  </div>
+
+  <script type="module" src="/src/js/main.js"></script>
+</body>
+</html>
