@@ -43,16 +43,10 @@ function connect() {
 
   ws.onopen = () => {
     setStatus('connected', '0 mål')
+    // Ingen FilterMessageTypes = mottar alle typer (Class A + B + statisk data)
     const sub = {
       APIKey: API_KEY,
       BoundingBoxes: [currentBBox],
-      // Inkluder alle relevante meldingstyper: Class A + Class B
-      FilterMessageTypes: [
-        'PositionReport',              // Class A (type 1,2,3) — cargo, tanker
-        'StandardClassBPositionReport', // Class B (type 18) — fritidsbåter, ferger
-        'ExtendedClassBPositionReport', // Class B extended (type 19)
-        'ShipStaticData',               // Skipsnavn, type, dimensjoner (type 5)
-      ],
     }
     ws.send(JSON.stringify(sub))
   }
@@ -83,28 +77,23 @@ function handleMessage(msg) {
   const mmsi = meta.MMSI
   if (!mmsi) return
 
-  // Class A posisjon
-  if (type === 'PositionReport') {
-    const p = msg.Message?.PositionReport || {}
-    handlePosition(mmsi, p.Latitude, p.Longitude,
-      p.TrueHeading ?? p.CourseOverGround ?? 0,
-      meta.ShipName || '', p.SpeedOverGround, p.CourseOverGround)
-  }
+  // MetaData inneholder alltid lat/lon fra aisstream — bruk som primærkilde
+  const metaLat = meta.latitude ?? meta.Latitude
+  const metaLon = meta.longitude ?? meta.Longitude
+  const name = meta.ShipName || ''
 
-  // Class B standard
-  if (type === 'StandardClassBPositionReport') {
-    const p = msg.Message?.StandardClassBPositionReport || {}
-    handlePosition(mmsi, p.Latitude, p.Longitude,
-      p.TrueHeading ?? p.CourseOverGround ?? 0,
-      meta.ShipName || '', p.SpeedOverGround, p.CourseOverGround)
-  }
+  // Hent ut posisjon fra Message-objektet uansett type
+  const msgBody = msg.Message?.[type] || {}
+  const lat = msgBody.Latitude ?? metaLat
+  const lon = msgBody.Longitude ?? metaLon
+  const sog = msgBody.SpeedOverGround ?? null
+  const cog = msgBody.CourseOverGround ?? null
+  const hdg = msgBody.TrueHeading ?? cog ?? 0
+  const shipName = msgBody.Name || name
 
-  // Class B extended
-  if (type === 'ExtendedClassBPositionReport') {
-    const p = msg.Message?.ExtendedClassBPositionReport || {}
-    handlePosition(mmsi, p.Latitude, p.Longitude,
-      p.TrueHeading ?? p.CourseOverGround ?? 0,
-      p.Name || meta.ShipName || '', p.SpeedOverGround, p.CourseOverGround)
+  // Behandle alle meldinger som har posisjon (Class A, B, og andre)
+  if (lat && lon) {
+    handlePosition(mmsi, lat, lon, hdg, shipName, sog, cog)
   }
 }
 
